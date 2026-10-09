@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>拾光祝福牆</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -660,6 +665,9 @@ main{padding-inline:16px;padding-block:20px 48px}
 @media (max-width:860px){ :root[data-tpl="minimal"] .featured{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{animation:none!important;transition:none!important} }
 </style>
+</head>
+<body>
+
 
 <header class="topbar">
   <div class="brand"><span class="brand-name">拾光祝福牆</span><span class="demo-tag">展示版</span></div>
@@ -2554,3 +2562,6 @@ SAMPLES.forEach((s,i)=>{
 S.energy.ms.forEach(m=>{ m.unlocked = visible().length>=m.n; });
 buildCtrl(); drawQR(); renderGuest(); advance(); refresh();
 </script>
+
+</body>
+</html>
