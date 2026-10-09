@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>拾光祝福牆</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,6 +55,10 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+/* 獨立部署（GitHub Pages）時沒有外層樣板，這條一定要有：
+   否則 display:flex/grid 的遮罩層會蓋過 hidden 屬性，整頁被黑色遮罩蓋住 */
+[hidden]{display:none!important}
+html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;transition:background .3s}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
@@ -656,6 +665,9 @@ main{padding-inline:16px;padding-block:20px 48px}
 @media (max-width:860px){ :root[data-tpl="minimal"] .featured{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{animation:none!important;transition:none!important} }
 </style>
+</head>
+<body>
+
 
 <header class="topbar">
   <div class="brand"><span class="brand-name">拾光祝福牆</span><span class="demo-tag">展示版</span></div>
@@ -2550,3 +2562,6 @@ SAMPLES.forEach((s,i)=>{
 S.energy.ms.forEach(m=>{ m.unlocked = visible().length>=m.n; });
 buildCtrl(); drawQR(); renderGuest(); advance(); refresh();
 </script>
+
+</body>
+</html>
