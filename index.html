@@ -1,0 +1,2552 @@
+<title>拾光祝福牆</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@200;300;400;500;700&family=Noto+Serif+TC:wght@500;700;900&family=Cactus+Classical+Serif&family=Chiron+Hei+HK:wght@400;700&family=Chiron+Sung+HK:wght@500;900&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* 版面：一頁三視角（賓客手機／投影牆／控制台）。
+   玩法範本（拍照任務牆／祝福之樹）× 風格模板（data-tpl token）× 加購模組（集氣條、限時快閃）。
+   每個風格模板刻意只有一種明暗，不跟隨系統深淺色。 */
+:root{
+  /* 森林系 */
+  --bg:#e7eadd; --glow:#f6f4e8; --surface:#f4f3ea; --ink:#243021; --muted:#5f6a56; --line:#cbd1bb;
+  --accent:#4f6b3a; --accent-ink:#f7f6ee; --accent2:#8a6a2f; --link:#4f6b3a;
+  --paper:#fdfcf6; --paper-ink:#2a2922;
+  --ok:#3d7a46; --warn:#a8691a; --danger:#a83f35;
+  --tree:#6a5842; --k-flower:#d98aa0; --k-leaf:#6f9a4c; --k-fruit:#d7a43a; --k-heart:#c9483e;
+  --ema-wood1:#e6cb99; --ema-wood2:#c79e63; --ema-ink:#3a2615; --ema-string:#b5302b; --beam1:#8a6a45; --beam2:#5e4429;
+  --stamp:#4f6b3a; --pm:#7a5f3c; --tugL:#5b9bb5; --tugR:#e07b72;
+  --flash:#1f2a1b; --flash-ink:#f6f3e6; --flash-hi:#e9c46a;
+  --display:"LXGW WenKai TC","Kaiti TC","Noto Serif TC",serif; --dw:700; --dls:.04em;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --hand:"LXGW WenKai TC","Kaiti TC","DFKai-SB","Noto Serif TC",serif;
+  color-scheme:light;
+}
+:root[data-tpl="minimal"]{
+  --bg:#f3f2f0; --glow:#ffffff; --surface:#fbfbfa; --ink:#1b1a19; --muted:#6f6a64; --line:#e0dcd6;
+  --accent:#2b2a28; --accent-ink:#fbfbfa; --accent2:#8c7558; --link:#2b2a28;
+  --paper:#ffffff; --paper-ink:#1b1a19;
+  --ok:#3d7a46; --warn:#a8691a; --danger:#a83f35;
+  --tree:#9a9187; --k-flower:#d7a6a0; --k-leaf:#9fb08f; --k-fruit:#c8a46c; --k-heart:#b45a50;
+  --ema-wood1:#f3ebdd; --ema-wood2:#e2d4bb; --ema-ink:#1b1a19; --ema-string:#1b1a19; --beam1:#d2c9bb; --beam2:#b5aa98;
+  --stamp:#1b1a19; --pm:#8c7558; --tugL:#1b1a19; --tugR:#a8876a;
+  --flash:#fbfbfa; --flash-ink:#1b1a19; --flash-hi:#1b1a19;
+  --display:"Noto Sans TC","PingFang TC",sans-serif; --dw:200; --dls:.32em;
+  --hand:"Cactus Classical Serif","Noto Serif TC","Songti TC",serif;
+  color-scheme:light;
+}
+:root[data-tpl="retro"]{
+  --bg:#122b28; --glow:#1f4540; --surface:#18362f; --ink:#f1e2c4; --muted:#a8b8a4; --line:#2d524b;
+  --accent:#d4433a; --accent-ink:#fff3e2; --accent2:#e8b04b; --link:#e8b04b;
+  --paper:#f3e7cf; --paper-ink:#2b1e16;
+  --ok:#86c98f; --warn:#f0b54a; --danger:#ff8273;
+  --tree:#d9c39a; --k-flower:#ff8fa3; --k-leaf:#7cc48a; --k-fruit:#f0b54a; --k-heart:#ff5f4f;
+  --ema-wood1:#b83a30; --ema-wood2:#8a241e; --ema-ink:#f7dc9a; --ema-string:#e8b04b; --beam1:#4a2e1c; --beam2:#26160b;
+  --stamp:#c83a31; --pm:#9a6a1c; --tugL:#3fb5d9; --tugR:#ff5a4f;
+  --flash:#0b1d1b; --flash-ink:#f1e2c4; --flash-hi:#e8b04b;
+  --display:"Chiron Sung HK","Noto Serif TC","Songti TC",serif; --dw:900; --dls:.08em;
+  --body:"Chiron Hei HK","Noto Sans TC","PingFang TC",sans-serif;
+  --hand:"Chiron Sung HK","Noto Serif TC",serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;transition:background .3s}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* 頂部 */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto}
+.brand-name{font-family:var(--display);font-weight:var(--dw);letter-spacing:var(--dls);font-size:19px}
+.demo-tag{font-size:11px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);padding:0 7px;border-radius:99px}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 14px;border-radius:99px;cursor:pointer;color:var(--muted);font-size:14px;white-space:nowrap}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.pickers{display:flex;gap:12px;flex-wrap:wrap}
+.tpl-pick{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+select,input[type=text],input[type=number],textarea{background:var(--paper);color:var(--paper-ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+@media (max-width:640px){
+  .brand{width:100%} .topbar>.seg{flex:1 1 100%} .topbar>.seg button{flex:1;padding:6px 6px}
+  .pickers{width:100%} .tpl-pick{flex:1} .tpl-pick select{flex:1;min-width:0}
+}
+main{padding-inline:16px;padding-block:20px 48px}
+.view-note{max-width:430px;margin:14px auto 0;color:var(--muted);font-size:13px;text-align:center}
+
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:500;line-height:1.3;text-align:center}
+.btn.ghost{background:transparent;color:var(--link);border-color:var(--link)}
+.btn.block{width:100%}
+.btn.small{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn.big{padding:14px 22px;font-size:17px;font-weight:700}
+.btn.warnb{background:transparent;color:var(--danger);border-color:var(--danger)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.link{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:14px;padding:4px}
+
+/* 賓客手機 */
+.phone{max-width:430px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden;min-height:560px}
+.g-flash{display:flex;width:100%;border:0;background:var(--accent);color:var(--accent-ink);padding:10px 16px;gap:10px;align-items:center;cursor:pointer;text-align:left;font-size:14px;line-height:1.45;animation:pulse 1.2s ease-in-out infinite alternate}
+.g-flash .fl-txt{flex:1;min-width:0}
+.g-flash b{font-variant-numeric:tabular-nums}
+.g-flash .go{border:1px solid currentColor;border-radius:99px;padding:2px 12px;flex:none;font-weight:700}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.18)}}
+.g-head{padding:26px 22px 16px;text-align:center;border-bottom:1px dashed var(--line)}
+.g-kicker{font-size:12px;letter-spacing:.3em;color:var(--muted)}
+.g-names{font-family:var(--display);font-weight:var(--dw);letter-spacing:var(--dls);font-size:28px;line-height:1.3;margin-top:4px;text-wrap:balance}
+.amp{color:var(--accent2);font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:400;margin:0 .15em}
+.g-date{font-size:13px;color:var(--muted);letter-spacing:.18em;font-variant-numeric:tabular-nums}
+.g-body{padding:20px 22px 26px;display:flex;flex-direction:column;gap:14px}
+.g-lead{margin:0;color:var(--muted);text-align:center}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);position:relative}
+.field input,.field select,.field textarea{font-size:16px;width:100%}
+.field textarea{resize:none;font-family:var(--hand);line-height:1.5;padding-bottom:24px}
+.counter{position:absolute;right:10px;bottom:6px;font-size:12px;color:var(--paper-ink);opacity:.55;font-variant-numeric:tabular-nums}
+.err{margin:0;color:var(--danger);font-size:13px;text-align:center}
+.hint{font-size:13px;color:var(--muted);margin:0}
+
+/* 任務卡 */
+.tcard{appearance:none;border:0;background:none;padding:0;cursor:pointer;perspective:1200px;width:100%;max-width:280px;margin:0 auto;aspect-ratio:3/4;display:block}
+.tc-inner{position:relative;display:block;width:100%;height:100%;transition:transform .75s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
+.tcard.flipped .tc-inner{transform:rotateY(180deg)}
+.tc-back,.tc-front{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.tc-back{background-color:var(--accent);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 10px,transparent 10px 20px);border:7px solid var(--paper)}
+.tc-mark{font-family:var(--display);font-weight:var(--dw);color:var(--accent-ink);font-size:24px;letter-spacing:.35em;padding:12px 10px 12px 20px;border:1px solid currentColor}
+.tc-tapme{position:absolute;bottom:18px;color:var(--accent-ink);opacity:.8;font-size:13px;letter-spacing:.1em}
+.tc-front{background:var(--paper);color:var(--paper-ink);transform:rotateY(180deg);gap:16px;text-align:center}
+.tc-task{font-family:var(--display);font-weight:var(--dw);font-size:21px;line-height:1.45;text-wrap:balance}
+.tc-prompt{font-size:13px;opacity:.7;text-wrap:balance}
+.cat{display:inline-block;font-size:12px;letter-spacing:.15em;padding:1px 10px 1px 12px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.cat-warm{color:#a2702a}.cat-fun{color:#b2443a}.cat-dare{color:#3f6e86}
+.mini-task{display:flex;gap:10px;align-items:center;background:var(--paper);color:var(--paper-ink);padding:10px 12px;border-radius:10px;font-weight:500;line-height:1.4}
+.mini-task .cat,.mini-task svg{flex:none}
+.mini-task small{display:block;font-weight:400;opacity:.7}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kind-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--paper-ink);cursor:pointer;text-align:center}
+.kind-btn:hover{border-color:var(--accent)}
+.kind-btn small{opacity:.7;font-size:12px}
+
+/* 拍立得 */
+.polaroid{margin:0;background:var(--paper);padding:10px 10px 14px;box-shadow:0 10px 26px rgba(0,0,0,.2);transform:rotate(var(--tilt,0deg))}
+.polaroid img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--line)}
+.polaroid figcaption{font-family:var(--hand);color:var(--paper-ink);font-size:16px;padding-top:10px;text-align:center;line-height:1.5}
+.preview{width:100%;max-width:230px;margin:0 auto;--tilt:-2deg}
+.note{background:var(--paper);display:grid;place-items:center;aspect-ratio:4/5;box-shadow:0 10px 26px rgba(0,0,0,.2);transform:rotate(var(--tilt,0deg))}
+.note svg{width:42%;height:auto}
+.pick{display:flex;flex-direction:column;gap:10px}
+.pick-empty{aspect-ratio:4/3;border:2px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--muted);text-align:center;padding:12px}
+.pick-empty.short{aspect-ratio:auto;padding:22px 12px}
+.pick-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.size-note{font-size:12px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums;line-height:1.5}
+.up-row{display:flex;justify-content:space-between;font-size:14px;font-variant-numeric:tabular-nums}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.done-title{font-family:var(--display);font-weight:var(--dw);letter-spacing:var(--dls);font-size:24px;text-align:center}
+
+/* 投影牆 */
+.wall{position:relative;overflow:hidden;background:radial-gradient(ellipse at 12% 0%,var(--glow),transparent 60%),var(--bg);border:1px solid var(--line);border-radius:14px;padding:clamp(16px,2.6vw,40px);display:flex;flex-direction:column;gap:clamp(12px,1.8vw,26px);min-height:min(82vh,940px)}
+.wall:fullscreen{border:0;border-radius:0;min-height:100vh}
+.wall-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.wall-names{font-family:var(--display);font-weight:var(--dw);letter-spacing:var(--dls);font-size:clamp(26px,3.6vw,58px);line-height:1.1}
+.wall-date{color:var(--muted);letter-spacing:.28em;font-size:clamp(12px,1vw,16px);margin-top:6px;font-variant-numeric:tabular-nums}
+.wall-tools{display:flex;gap:8px;align-items:center}
+.paused{font-size:13px;color:var(--warn);border:1px solid var(--warn);padding:2px 10px;border-radius:99px}
+
+/* 集氣條 */
+.energy{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.en-label{font-size:clamp(13px,1.1vw,17px);color:var(--muted);white-space:nowrap}
+.en-label b{color:var(--ink);font-family:var(--display);font-weight:var(--dw);font-size:1.5em;font-variant-numeric:tabular-nums}
+.en-track{position:relative;flex:1;min-width:200px;height:14px;background:var(--line);border-radius:99px;margin:0 12px 24px}
+.en-fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.en-mark{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:var(--surface);border:2px solid var(--line);transition:.4s}
+.en-mark.on{background:var(--accent2);border-color:var(--accent2);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent2) 25%,transparent)}
+.en-mark>span{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:var(--muted)}
+.en-mark.last>span{left:auto;right:-6px;transform:none}
+.en-mark.on>span{color:var(--ink);font-weight:500}
+.en-mark .full{display:inline}
+@media (max-width:760px){ .en-mark .full{display:none} }
+
+.screen{flex:1;min-width:0}
+#s-wall{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,22vw,330px);gap:clamp(16px,3vw,52px);align-items:center}
+.wall-main{min-width:0}
+.featured{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(18px,3.2vw,56px);align-items:center;min-width:0}
+.polaroid.big{padding:clamp(10px,1.2vw,18px) clamp(10px,1.2vw,18px) clamp(26px,3vw,52px)}
+.polaroid.big img{max-height:58vh}
+.feat-text{display:flex;flex-direction:column;gap:clamp(10px,1.6vw,24px);min-width:0}
+.task-chip{align-self:flex-start;font-size:clamp(12px,1vw,15px);color:var(--accent2);border:1px solid var(--accent2);padding:2px 12px;border-radius:99px;line-height:1.5}
+.bless{margin:0;font-family:var(--hand);font-size:clamp(22px,3.1vw,54px);line-height:1.45;text-wrap:balance;overflow-wrap:anywhere}
+.sign{font-size:clamp(14px,1.4vw,22px);color:var(--muted)}
+.pin-tag{align-self:flex-start;font-size:12px;color:var(--accent-ink);background:var(--accent);padding:1px 10px;border-radius:99px}
+.featured.enter .polaroid,.featured.enter .note{animation:drop .9s cubic-bezier(.2,.9,.25,1.15) both}
+.featured.enter .feat-text{animation:fadeup .8s .18s both}
+@keyframes drop{from{opacity:0;transform:translateY(-46px) rotate(calc(var(--tilt) - 9deg)) scale(.92)}to{opacity:1;transform:rotate(var(--tilt))}}
+@keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+.empty-wall{grid-column:1/-1;text-align:center;color:var(--muted)}
+.empty-title{font-family:var(--display);font-weight:var(--dw);font-size:clamp(24px,3vw,44px);color:var(--ink)}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.join{display:flex;gap:12px;align-items:center;background:var(--paper);color:var(--paper-ink);padding:12px;border-radius:12px}
+.qr{width:clamp(84px,7.5vw,124px);flex:none;aspect-ratio:1;display:grid;place-items:center;font-size:11px}
+.qr img,.qr canvas{width:100%!important;height:auto!important;display:block}
+.join-title{font-weight:700;line-height:1.3}
+.join-sub{font-size:13px;opacity:.75;line-height:1.45}
+.qr-note{font-size:11px;opacity:.5;margin-top:4px}
+.tally{display:flex;align-items:baseline;gap:8px;color:var(--muted)}
+.tally b{font-family:var(--display);font-weight:var(--dw);font-size:clamp(36px,4vw,66px);color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
+.recent{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mini{background:var(--paper);padding:4px 4px 6px;box-shadow:0 3px 8px rgba(0,0,0,.16);transform:rotate(var(--tilt,0deg));margin:0}
+.mini img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.mini span{display:block;font-size:11px;color:var(--paper-ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:2px}
+.wall-progress{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);width:0}
+
+/* 祝福之樹 */
+#tree{width:100%;display:block}
+.tree-cap{text-align:center;color:var(--muted);font-size:clamp(13px,1.2vw,18px);margin-top:4px}
+.tf{background:var(--paper);color:var(--paper-ink);padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:8px;transform:rotate(-1deg)}
+.tf img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.tf-kind{display:flex;gap:6px;align-items:center;font-size:13px}
+.tf-bless{margin:0;font-family:var(--hand);font-size:clamp(18px,1.8vw,30px);line-height:1.45;overflow-wrap:anywhere}
+.tf-sign{font-size:13px;opacity:.7}
+.tf.enter{animation:fadeup .8s both}
+
+#s-mosaic,#s-thanks{display:flex;flex-direction:column;justify-content:center}
+.mosaic-wrap{width:100%;max-width:1100px;margin:0 auto}
+#mosaic{width:100%;display:block;border-radius:4px}
+.mosaic-cap{text-align:center;color:var(--muted);margin-top:14px;font-size:clamp(14px,1.4vw,20px)}
+.thanks-card{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(20px,4vw,64px);align-items:center}
+.thanks-photo{width:100%;border:clamp(8px,1vw,14px) solid var(--paper);box-shadow:0 12px 30px rgba(0,0,0,.2);transform:rotate(-1.5deg)}
+.tk-kicker{letter-spacing:.45em;color:var(--accent2);font-size:clamp(13px,1.2vw,18px)}
+.tk-names{font-family:var(--display);font-weight:var(--dw);letter-spacing:var(--dls);font-size:clamp(32px,5vw,82px);line-height:1.15;margin:8px 0 14px}
+.thanks-card p{font-family:var(--hand);font-size:clamp(17px,1.8vw,28px);margin:0;line-height:1.6}
+.thanks-card p b{font-family:var(--display);color:var(--accent2)}
+
+/* 快閃覆蓋層 */
+.flash{position:absolute;inset:0;z-index:5;background:var(--flash);color:var(--flash-ink);padding:clamp(16px,3vw,44px);display:flex;flex-direction:column;gap:clamp(10px,1.6vw,22px);overflow:hidden;animation:fadeup .4s both}
+.fl-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.fl-kicker{background:var(--accent);color:var(--accent-ink);padding:4px 16px;border-radius:99px;letter-spacing:.25em;font-weight:700;font-size:clamp(13px,1.3vw,20px);animation:pulse .8s ease-in-out infinite alternate}
+.fl-count{font-family:var(--display);font-weight:900;font-size:clamp(52px,7.5vw,120px);line-height:1;font-variant-numeric:tabular-nums;color:var(--flash-hi)}
+.fl-count.hurry{color:#ff6b5e;animation:pulse .4s infinite alternate}
+.fl-bar{height:6px;background:rgba(255,255,255,.15);border-radius:9px;overflow:hidden}
+.fl-bar i{display:block;height:100%;background:var(--flash-hi);transition:width .25s linear}
+.fl-task{font-family:var(--display);font-weight:var(--dw);font-size:clamp(26px,4vw,66px);line-height:1.25;text-wrap:balance}
+.fl-sub{opacity:.75;font-size:clamp(14px,1.3vw,20px)}
+.fl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(72px,9vw,130px),1fr));gap:14px;align-content:start;flex:1;min-height:0;overflow:hidden;padding:8px}
+.fl-item{position:relative;background:var(--paper);padding:4px;margin:0;animation:pop .5s cubic-bezier(.2,1.4,.4,1) both}
+.fl-item img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.fl-item span{font-size:11px;color:var(--paper-ink);display:block;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.rank{position:absolute;top:-10px;left:-10px;width:30px;height:30px;border-radius:50%;background:var(--flash-hi);color:#2b1e16;font-weight:700;display:grid;place-items:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.fl-result{flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2vw,30px);text-align:center}
+.fl-result h2{margin:0;font-family:var(--display);font-weight:900;font-size:clamp(40px,6vw,96px);line-height:1.1;color:var(--flash-hi);animation:pop .7s cubic-bezier(.2,1.4,.4,1) both}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2.4vw,40px);max-width:900px;margin:0 auto;width:100%;align-items:end}
+.pod{display:flex;flex-direction:column;align-items:center;gap:8px;animation:fadeup .7s both}
+.pod .polaroid{width:100%;max-width:220px;padding:6px 6px 10px}
+.pod .polaroid img{aspect-ratio:1}
+.pod-rank{font-family:var(--display);font-weight:900;color:var(--flash-hi);font-size:clamp(16px,1.8vw,28px)}
+.pod-name{font-size:clamp(14px,1.4vw,22px)}
+.pod.r1{order:2}.pod.r2{order:1;animation-delay:.25s}.pod.r3{order:3;animation-delay:.45s}
+.pod.r1 .polaroid{max-width:260px}
+
+/* 解鎖覆蓋層 */
+.unlock{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:clamp(8px,1.4vw,18px);background:var(--flash);color:var(--flash-ink);overflow:hidden;padding:24px}
+.ul-kicker{letter-spacing:.4em;color:var(--flash-hi);font-size:clamp(14px,1.5vw,22px)}
+.ul-title{font-family:var(--display);font-weight:900;font-size:clamp(56px,10vw,160px);line-height:1;animation:pop .7s cubic-bezier(.2,1.4,.4,1) both}
+.ul-text{font-family:var(--hand);font-size:clamp(28px,4.6vw,76px);line-height:1.3;animation:fadeup .7s .35s both;text-wrap:balance}
+.confetti{position:absolute;top:-24px;width:10px;height:16px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(1300px) rotate(800deg)}}
+
+@media (max-width:860px){
+  #s-wall{grid-template-columns:1fr}
+  .featured{grid-template-columns:1fr;justify-items:center}
+  .polaroid.big,.featured .note{max-width:320px;width:100%}
+  .feat-text{align-items:center;text-align:center}
+  .task-chip,.pin-tag{align-self:center}
+  .recent{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .thanks-card{grid-template-columns:1fr;text-align:center}
+}
+@media (max-width:480px){ .recent{grid-template-columns:repeat(4,minmax(0,1fr))} }
+
+/* 控制台 */
+.ctrl-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:1100px;margin:0 auto}
+.span2{grid-column:1/-1}
+@media (max-width:760px){ .ctrl-grid{grid-template-columns:1fr} }
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel.host{border:2px solid var(--accent)}
+.panel h3{margin:0;font-family:var(--display);font-weight:var(--dw);font-size:17px;letter-spacing:var(--dls)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:560px){ .stats{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.stat .n{font-family:var(--display);font-weight:var(--dw);font-size:34px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .l{font-size:13px;color:var(--muted)}
+.stat.warn .n{color:var(--warn)} .stat.hid .n{color:var(--danger)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg.small button{padding:5px 12px;font-size:13px}
+.inline{font-size:14px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.radio-cards{display:grid;gap:8px}
+.rc{display:flex;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;align-items:flex-start}
+.rc:has(input:checked){border-color:var(--accent);background:var(--bg)}
+.rc input{margin-top:5px;accent-color:var(--accent)}
+.rc small{display:block;color:var(--muted);font-size:13px;line-height:1.5}
+.host-setup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+@media (max-width:760px){ .host-setup{grid-template-columns:1fr} }
+.host-live{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+.cf-count{font-family:var(--display);font-weight:900;font-size:48px;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
+.cf-task{font-family:var(--display);font-weight:var(--dw);font-size:19px;line-height:1.4;flex:1;min-width:200px}
+.ms-row{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:8px;align-items:center}
+.ms-row input{width:100%}
+.ms-st{display:flex;gap:6px;align-items:center}
+@media (max-width:480px){ .ms-row{grid-template-columns:64px minmax(0,1fr)} .ms-st{grid-column:1/-1} }
+.list-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.list-head h3{margin-right:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:3px 11px;font-size:13px;cursor:pointer;color:var(--muted)}
+.chips button.on{border-color:var(--ink);color:var(--ink)}
+.post-list{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow:auto}
+.post-row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 10px 8px 8px;border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:10px}
+.post-row.st-pending{border-left-color:var(--warn)}
+.post-row.st-hidden{border-left-color:var(--danger)}
+.post-row.st-hidden .pr-thumb{filter:grayscale(1);opacity:.6}
+.pr-thumb{width:64px;height:64px;border-radius:6px;cursor:zoom-in;border:0;padding:0;display:grid;place-items:center;background-size:cover;background-position:center}
+.pr-thumb.text{cursor:default;background:var(--paper)}
+.pr-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center}
+.pr-meta b{color:var(--ink)}
+.pr-text{font-family:var(--hand);font-size:15px;overflow-wrap:anywhere;line-height:1.5}
+.pr-task{font-size:12px;color:var(--muted)}
+.pr-acts{display:flex;flex-direction:column;gap:6px}
+@media (max-width:560px){ .post-row{grid-template-columns:56px minmax(0,1fr)} .pr-thumb{width:56px;height:56px} .pr-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap} }
+.chip{font-size:11px;padding:0 8px;border-radius:99px;border:1px solid currentColor;line-height:1.6;white-space:nowrap}
+.c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-danger{color:var(--danger)} .c-muted{color:var(--muted)} .c-acc{color:var(--accent2)}
+.switch{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
+.switch input{accent-color:var(--accent);width:16px;height:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-grid .full{grid-column:1/-1}
+.couple-prev{display:flex;gap:12px;align-items:center}
+.couple-prev img{width:96px;aspect-ratio:3/2;object-fit:cover;border-radius:6px}
+.ex-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ex-grid b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:26px;font-variant-numeric:tabular-nums;line-height:1.2}
+.ex-grid span{font-size:13px;color:var(--muted)}
+@media (max-width:480px){ .ex-grid{grid-template-columns:1fr 1fr} }
+
+/* 燈箱、提示 */
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:grid;place-items:center;padding:16px}
+.lb-card{background:var(--surface);color:var(--ink);border-radius:12px;width:min(640px,100%);max-height:100%;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.lb-card img{max-height:62vh;max-width:100%;margin:0 auto;display:block}
+.lb-info{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;font-variant-numeric:tabular-nums}
+.lb-info dt{color:var(--muted)} .lb-info dd{margin:0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:99px;font-size:14px;opacity:0;transition:.3s;z-index:60;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%)}
+/* 繪馬牆 */
+#ema-wrap{display:flex;flex-direction:column;gap:clamp(6px,1.2vw,16px)}
+.beam{height:14px;border-radius:7px;background:linear-gradient(var(--beam1),var(--beam2));box-shadow:0 4px 8px rgba(0,0,0,.22);margin:0 -6px;position:relative;z-index:1}
+.hangs{display:flex;justify-content:space-around;gap:8px;min-height:30px;margin-top:-4px}
+.ema{position:relative;padding-top:24px;transform-origin:50% 0;animation:sway var(--sw,3.2s) ease-in-out var(--d,0s) infinite alternate;flex:0 0 auto}
+@keyframes sway{from{transform:rotate(-2.2deg)}to{transform:rotate(2.2deg)}}
+.ema::before{content:"";position:absolute;top:0;left:50%;width:2px;height:32px;margin-left:-1px;background:var(--ema-string);z-index:1}
+.ema-board{width:clamp(78px,8.4vw,132px);aspect-ratio:3/4;clip-path:polygon(50% 0,100% 20%,100% 100%,0 100%,0 20%);background:repeating-linear-gradient(90deg,rgba(90,55,25,.07) 0 2px,transparent 2px 7px),linear-gradient(170deg,var(--ema-wood1),var(--ema-wood2));color:var(--ema-ink);display:flex;flex-direction:column;align-items:center;padding:11% 9% 8%;gap:4%}
+.ema-hole{width:9%;aspect-ratio:1;border-radius:50%;background:rgba(0,0,0,.4);flex:none}
+.ema-motif{width:30%;flex:none;display:grid;place-items:center}
+.ema-motif svg{width:100%;height:auto;display:block}
+.ema-text{writing-mode:vertical-rl;font-family:var(--hand);font-size:clamp(10px,.95vw,14px);line-height:1.55;flex:1;min-height:0;overflow:hidden;letter-spacing:.06em;max-width:100%}
+.ema-name{font-size:clamp(9px,.75vw,12px);opacity:.8;align-self:stretch;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ema.drop{animation:emadrop .9s cubic-bezier(.2,.9,.25,1.2) both,sway var(--sw,3.2s) ease-in-out .9s infinite alternate}
+@keyframes emadrop{from{transform:translateY(-70px) rotate(-14deg);opacity:0}to{transform:rotate(0);opacity:1}}
+.ema.feat{filter:drop-shadow(0 0 7px var(--accent2)) drop-shadow(0 0 2px var(--accent2))}
+.side-ema{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ema.big .ema-board{width:220px;max-width:100%}
+.ema.big .ema-text{font-size:clamp(15px,1.35vw,20px)}
+.ema.big .ema-name{font-size:13px}
+.side-cap{font-size:13px;color:var(--muted);text-align:center}
+
+/* 明信片牆 */
+.pc-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(160px,15vw,230px),1fr));gap:clamp(14px,1.8vw,26px);padding:6px}
+.pc{position:relative;aspect-ratio:3/2;background:var(--paper);color:var(--paper-ink);box-shadow:0 6px 16px rgba(0,0,0,.18);transform:rotate(var(--tilt,0deg));display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);padding:6% 7%;gap:6%;font-size:clamp(10px,.8vw,13px);overflow:hidden}
+.pc-msg{font-family:var(--hand);line-height:1.45;overflow:hidden;border-right:1px solid color-mix(in srgb,var(--paper-ink) 22%,transparent);padding-right:8%;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;font-size:1.12em;overflow-wrap:anywhere}
+.pc-side{display:flex;flex-direction:column;justify-content:space-between;min-width:0;position:relative}
+.stamp{align-self:flex-end;width:44%;aspect-ratio:4/5;border:3px dotted var(--stamp);background:var(--paper);display:grid;place-items:center;position:relative;z-index:1}
+.stamp svg{width:72%;height:auto}
+.pm{position:absolute;top:4%;right:30%;width:52%;aspect-ratio:1;border:1.5px solid var(--pm);border-radius:50%;opacity:.7;transform:rotate(-14deg);display:grid;place-items:center;text-align:center;font-size:.7em;line-height:1.25;color:var(--pm);font-variant-numeric:tabular-nums;z-index:2}
+.pc-lines{display:flex;flex-direction:column;gap:3px}
+.pc-to{border-bottom:1px solid color-mix(in srgb,var(--paper-ink) 28%,transparent);padding-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.92em}
+.pc.flipin{animation:flipin .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes flipin{from{transform:perspective(800px) rotateY(100deg) rotate(var(--tilt,0deg));opacity:.2}to{transform:perspective(800px) rotateY(0) rotate(var(--tilt,0deg));opacity:1}}
+.pc.feat{outline:3px solid var(--accent2);outline-offset:5px}
+.side-pc{display:flex;flex-direction:column;gap:14px}
+.pc-front{width:100%;aspect-ratio:3/2;object-fit:cover;display:block;border:8px solid var(--paper);box-shadow:0 6px 16px rgba(0,0,0,.2);transform:rotate(2deg)}
+.side-pc .pc{font-size:clamp(11px,.95vw,14px);--tilt:-1.5deg}
+
+/* 選圖樣 */
+.kind-btn img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:6px;display:block}
+.kind-btn .ema-board{width:64px}
+
+/* 舞台互動：投影 */
+.stage{position:absolute;inset:0;z-index:7;background:var(--flash);color:var(--flash-ink);padding:clamp(16px,3vw,44px);display:flex;flex-direction:column;gap:clamp(10px,1.6vw,22px);overflow:hidden;animation:fadeup .4s both}
+.st-sub{opacity:.75;font-size:clamp(14px,1.3vw,20px);text-align:center}
+.tug-teams{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.team{display:flex;flex-direction:column;gap:2px;min-width:0}
+.team.R{text-align:right;align-items:flex-end}
+.team b{font-family:var(--display);font-weight:var(--dw);font-size:clamp(22px,3vw,46px);line-height:1.2}
+.team span{opacity:.7;font-size:clamp(13px,1.2vw,18px)}
+.team em{font-style:normal;font-family:var(--display);font-weight:900;font-size:clamp(44px,6.5vw,104px);line-height:1;font-variant-numeric:tabular-nums}
+.team.L b,.team.L em{color:var(--tugL)} .team.R b,.team.R em{color:var(--tugR)}
+.rope-wrap{position:relative;flex:1;min-height:110px;overflow:hidden}
+.rope{position:absolute;left:-12%;right:-12%;top:50%;height:clamp(14px,1.6vw,24px);transform:translateY(-50%);border-radius:99px;background:repeating-linear-gradient(115deg,#d6b27a 0 14px,#a07c45 14px 22px);box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.center-line{position:absolute;left:50%;top:8%;bottom:8%;border-left:2px dashed rgba(255,255,255,.35)}
+.win-line{position:absolute;top:16%;bottom:16%;width:5px;border-radius:3px}
+.win-line.L{left:14%;background:var(--tugL)} .win-line.R{right:14%;background:var(--tugR)}
+.flag{position:absolute;left:50%;top:50%;width:clamp(26px,3vw,44px);height:clamp(56px,7vw,100px);margin-left:calc(clamp(26px,3vw,44px) / -2);background:var(--flash-hi);clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%)}
+.cd-big{font-family:var(--display);font-weight:900;font-size:clamp(100px,18vw,260px);text-align:center;line-height:1;color:var(--flash-hi);flex:1;display:grid;place-items:center}
+.st-result{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:clamp(10px,1.8vw,24px);text-align:center;position:relative}
+.st-result h2{margin:0;font-family:var(--display);font-weight:900;font-size:clamp(46px,7vw,110px);line-height:1.1;animation:pop .7s cubic-bezier(.2,1.4,.4,1) both}
+.st-reward{font-family:var(--hand);font-size:clamp(26px,4vw,64px);line-height:1.3;text-wrap:balance}
+.cheer-body{flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(24px,6vw,96px);align-items:center;max-width:1000px;margin:0 auto;width:100%}
+.thermo{display:flex;flex-direction:column;align-items:center}
+.th-tube{position:relative;width:clamp(56px,6vw,92px);height:clamp(240px,50vh,540px);border-radius:999px 999px 0 0;background:rgba(255,255,255,.08);border:4px solid rgba(255,255,255,.35);border-bottom:0;overflow:hidden}
+.th-heat{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(0deg,var(--accent),var(--flash-hi))}
+.th-level{position:absolute;left:0;right:0;height:3px;bottom:0;background:#fff;box-shadow:0 0 8px #fff}
+.th-bulb{width:clamp(96px,10vw,150px);aspect-ratio:1;border-radius:50%;background:var(--accent);border:4px solid rgba(255,255,255,.35);margin-top:-10px;box-shadow:0 0 34px var(--accent)}
+.ch-goal{opacity:.75;letter-spacing:.2em;font-size:clamp(14px,1.4vw,22px)}
+.ch-reward{font-family:var(--display);font-weight:var(--dw);font-size:clamp(30px,4.6vw,78px);line-height:1.2;text-wrap:balance}
+.ch-pct{font-family:var(--display);font-weight:900;font-size:clamp(64px,11vw,170px);line-height:1;color:var(--flash-hi);font-variant-numeric:tabular-nums}
+.ch-src{font-size:13px;opacity:.6}
+.stage.light{background:#04060a;color:#f5f5f5}
+.lt-canvas{width:100%;flex:1;min-height:220px;display:block}
+
+/* 舞台互動：賓客手機 */
+.g-stage{min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px 22px;text-align:center}
+.g-stage h2{margin:0;font-family:var(--display);font-weight:var(--dw);font-size:28px;line-height:1.3}
+.g-stage .big{font-family:var(--display);font-weight:900;font-size:64px;line-height:1;font-variant-numeric:tabular-nums}
+.tap-btn{width:min(68vw,230px);aspect-ratio:1;border-radius:50%;border:0;font-family:var(--display);font-weight:900;font-size:56px;color:#fff;cursor:pointer;box-shadow:0 10px 0 rgba(0,0,0,.25);touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.tap-btn:active{transform:translateY(6px);box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.tap-btn:disabled{opacity:.5}
+.side-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.side-pick .btn{padding:22px 10px;font-size:17px}
+.vs{display:flex;gap:18px;justify-content:center;font-variant-numeric:tabular-nums;font-size:15px}
+.g-light{min-height:620px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:30px 20px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);text-align:center;gap:10px;background:#000}
+.g-light .gl-big{font-family:var(--display);font-weight:var(--dw);font-size:28px}
+.phone:fullscreen{max-width:none;border-radius:0;border:0}
+.phone:fullscreen .g-light{min-height:100vh}
+.mini-meter{width:100%;height:18px;border-radius:99px;background:var(--line);overflow:hidden}
+.mini-meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+
+/* 舞台互動：控制台 */
+.stage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:960px){ .stage-grid{grid-template-columns:1fr} }
+.st-card{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.st-card.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.st-card h4{margin:0;font-family:var(--display);font-weight:var(--dw);font-size:16px}
+.st-card>div{display:flex;flex-direction:column;gap:10px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.sw.on{outline:2px solid var(--ink);outline-offset:2px}
+.big-n{font-family:var(--display);font-weight:900;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:6px}
+.hold-btn{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;padding:16px}
+:root[data-tpl="minimal"] .st-card,:root[data-tpl="minimal"] .sw{border-radius:0}
+:root[data-tpl="retro"] .st-card{border:3px double var(--line);border-radius:3px}
+:root[data-tpl="forest"] .st-card{border:1.5px dashed var(--line);border-radius:16px}
+
+/* 範例句子 */
+.phrases{display:flex;flex-direction:column;gap:8px}
+.ph-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+.ph-list{display:flex;flex-wrap:wrap;gap:6px}
+.phrase{border:1px solid var(--line);background:var(--paper);color:var(--paper-ink);border-radius:99px;padding:5px 12px;font-size:14px;font-family:var(--hand);cursor:pointer;text-align:left;line-height:1.4}
+.phrase:hover{border-color:var(--accent)}
+.phrase.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+:root[data-tpl="minimal"] .phrase{border-radius:0}
+:root[data-tpl="retro"] .phrase{border:3px double var(--line);border-radius:3px}
+:root[data-tpl="forest"] .phrase{border-style:dashed}
+
+/* 隱私 */
+.priv{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.priv summary{cursor:pointer;font-size:14px;font-weight:500;display:flex;justify-content:space-between;gap:8px;list-style:none}
+.priv summary::-webkit-details-marker{display:none}
+.priv summary small{color:var(--muted);font-weight:400;text-align:right}
+.priv-body{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.priv-body label{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;color:var(--ink);cursor:pointer}
+.priv-body input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.priv-body label.off{opacity:.45}
+.priv-note{font-size:12px;color:var(--muted);line-height:1.65;border-top:1px dashed var(--line);padding-top:8px}
+.trust{font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.priv-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+
+/* 限動卡 */
+.story-wrap{display:grid;place-items:center}
+.story{width:100%;max-width:230px;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.25);display:block;-webkit-touch-callout:default;user-select:auto}
+.story.r45{max-width:290px}
+.story-loading{width:200px;aspect-ratio:9/16;border:2px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--muted);text-align:center;padding:12px}
+.fmt{align-self:center}
+.del-box{border:1px solid var(--danger);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.link.danger{color:var(--danger)}
+
+/* ================================================================
+   三種風格的設計語言（不只配色，連字型、邊框、相框、卡片都不同）
+   森林系：手作手帳．紙紋、縫線虛線、紙膠帶、圓潤
+   簡約白：藝廊展簽．細線、直角、無陰影、無傾斜、編號展簽
+   復古港風：霓虹招牌．雙線框、舊照片相角、囍字、霓虹光暈、掃描線
+   ================================================================ */
+.polaroid,.note,.tf,.mini{position:relative}
+.plate{display:none}
+.wall>.wall-top,.wall>.energy,.wall>.screen{position:relative;z-index:1}
+
+/* ---------- 森林系 ---------- */
+:root[data-tpl="forest"] body{background-color:var(--bg);background-image:radial-gradient(rgba(106,88,66,.07) 1px,transparent 1.2px);background-size:5px 5px}
+:root[data-tpl="forest"] .phone{border-radius:30px;box-shadow:0 0 0 7px var(--surface),0 0 0 8px var(--line)}
+:root[data-tpl="forest"] .g-head{border-bottom:0;position:relative;padding-bottom:26px}
+:root[data-tpl="forest"] .g-head::after{content:"❦";position:absolute;left:50%;bottom:2px;transform:translateX(-50%);color:var(--accent2);font-size:18px;background:var(--surface);padding:0 10px;line-height:1}
+:root[data-tpl="forest"] .g-head::before{content:"";position:absolute;left:22px;right:22px;bottom:11px;border-top:1.5px dashed var(--line)}
+:root[data-tpl="forest"] .btn{border-radius:999px}
+:root[data-tpl="forest"] .mini-task,
+:root[data-tpl="forest"] .join,
+:root[data-tpl="forest"] .panel,
+:root[data-tpl="forest"] .kind-btn{border-radius:18px;border:1.5px dashed var(--line)}
+:root[data-tpl="forest"] .panel.host{border:2px dashed var(--accent)}
+:root[data-tpl="forest"] .polaroid{border-radius:3px}
+:root[data-tpl="forest"] .polaroid::before,
+:root[data-tpl="forest"] .tf::before,
+:root[data-tpl="forest"] .note::before{content:"";position:absolute;top:-11px;left:50%;width:42%;max-width:110px;height:22px;transform:translateX(-50%) rotate(-4deg);background:rgba(160,188,120,.62);background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.28) 0 6px,transparent 6px 12px);z-index:2}
+:root[data-tpl="forest"] .tc-back{border-radius:20px;outline:2px dashed rgba(255,255,255,.45);outline-offset:-18px;background-image:radial-gradient(rgba(255,255,255,.12) 2px,transparent 2.5px);background-size:18px 18px}
+:root[data-tpl="forest"] .tc-back::before{content:"";position:absolute;width:90px;height:90px;opacity:.22;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 4 C34 12 34 30 20 36 C6 30 6 12 20 4Z' fill='%23fff'/%3E%3C/svg%3E")}
+:root[data-tpl="forest"] .tc-front{border-radius:20px}
+:root[data-tpl="forest"] .tc-mark{border:0;border-bottom:1.5px dashed currentColor;padding:4px 6px 6px 14px;letter-spacing:.25em}
+:root[data-tpl="forest"] .task-chip{border-radius:16px 3px 16px 3px;background:color-mix(in srgb,var(--accent2) 12%,transparent)}
+:root[data-tpl="forest"] .wall{border:0;border-radius:28px;box-shadow:inset 0 0 0 1.5px var(--line)}
+:root[data-tpl="forest"] .wall::after{content:"";position:absolute;top:-10px;right:-10px;width:clamp(120px,16vw,240px);aspect-ratio:1;opacity:.5;pointer-events:none;z-index:0;background:no-repeat top right/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cpath d='M118 2 C90 20 60 40 22 92' stroke='%236a5842' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Cg fill='%236f9a4c'%3E%3Cellipse cx='96' cy='22' rx='11' ry='4.5' transform='rotate(-28 96 22)'/%3E%3Cellipse cx='84' cy='38' rx='12' ry='5' transform='rotate(40 84 38)'/%3E%3Cellipse cx='66' cy='48' rx='12' ry='5' transform='rotate(-35 66 48)'/%3E%3Cellipse cx='56' cy='66' rx='12' ry='5' transform='rotate(45 56 66)'/%3E%3Cellipse cx='38' cy='72' rx='11' ry='4.5' transform='rotate(-30 38 72)'/%3E%3C/g%3E%3Ccircle cx='28' cy='86' r='5' fill='%23d98aa0'/%3E%3C/svg%3E")}
+:root[data-tpl="forest"] .en-track{height:16px;border:1.5px dashed var(--line);background:transparent}
+:root[data-tpl="forest"] .en-mark{border-style:dashed}
+:root[data-tpl="forest"] .en-mark.on{border-style:solid}
+:root[data-tpl="forest"] .thanks-photo{border-radius:4px}
+
+/* ---------- 簡約白 ---------- */
+:root[data-tpl="minimal"] .phone,
+:root[data-tpl="minimal"] .btn,
+:root[data-tpl="minimal"] .panel,
+:root[data-tpl="minimal"] .join,
+:root[data-tpl="minimal"] .mini-task,
+:root[data-tpl="minimal"] .kind-btn,
+:root[data-tpl="minimal"] .pick-empty,
+:root[data-tpl="minimal"] .wall,
+:root[data-tpl="minimal"] .seg,
+:root[data-tpl="minimal"] .seg button,
+:root[data-tpl="minimal"] .chips button,
+:root[data-tpl="minimal"] .tc-back,
+:root[data-tpl="minimal"] .tc-front,
+:root[data-tpl="minimal"] .post-row,
+:root[data-tpl="minimal"] .pr-thumb,
+:root[data-tpl="minimal"] .rc,
+:root[data-tpl="minimal"] select,
+:root[data-tpl="minimal"] input,
+:root[data-tpl="minimal"] textarea,
+:root[data-tpl="minimal"] .demo-tag,
+:root[data-tpl="minimal"] .chip,
+:root[data-tpl="minimal"] .cat,
+:root[data-tpl="minimal"] .task-chip,
+:root[data-tpl="minimal"] .pin-tag,
+:root[data-tpl="minimal"] .fl-kicker{border-radius:0}
+:root[data-tpl="minimal"] .polaroid,
+:root[data-tpl="minimal"] .note,
+:root[data-tpl="minimal"] .mini,
+:root[data-tpl="minimal"] .tf,
+:root[data-tpl="minimal"] .tc-back,
+:root[data-tpl="minimal"] .tc-front,
+:root[data-tpl="minimal"] .thanks-photo{box-shadow:none;--tilt:0deg!important;transform:none}
+:root[data-tpl="minimal"] .tcard.flipped .tc-front{transform:rotateY(180deg)}
+:root[data-tpl="minimal"] .tc-front{transform:rotateY(180deg)}
+:root[data-tpl="minimal"] .polaroid{padding:0;background:transparent}
+:root[data-tpl="minimal"] .polaroid.big{padding:0}
+:root[data-tpl="minimal"] .polaroid img{border:1px solid var(--line)}
+:root[data-tpl="minimal"] .polaroid figcaption{text-align:left;font-size:14px}
+:root[data-tpl="minimal"] .note{border:1px solid var(--line)}
+:root[data-tpl="minimal"] .mini{padding:0;background:transparent}
+:root[data-tpl="minimal"] .mini span{text-align:left;color:var(--muted);letter-spacing:.1em}
+:root[data-tpl="minimal"] .recent{gap:6px}
+:root[data-tpl="minimal"] .tf{border:1px solid var(--line);padding:16px}
+:root[data-tpl="minimal"] .btn{letter-spacing:.24em;font-weight:400;padding:12px 18px;font-size:14px}
+:root[data-tpl="minimal"] .btn.small{letter-spacing:.12em}
+:root[data-tpl="minimal"] .seg{background:transparent;border:0;border-bottom:1px solid var(--line);padding:0;gap:14px}
+:root[data-tpl="minimal"] .seg button{padding:6px 2px;letter-spacing:.18em;border-bottom:1px solid transparent;margin-bottom:-1px}
+:root[data-tpl="minimal"] .seg button.on{background:transparent;color:var(--ink);border-bottom-color:var(--ink)}
+:root[data-tpl="minimal"] .g-head{border-bottom:1px solid var(--line);padding:36px 22px 22px}
+:root[data-tpl="minimal"] .g-names{font-size:26px}
+:root[data-tpl="minimal"] .amp{font-family:var(--display);font-style:normal;font-weight:200;color:var(--muted)}
+:root[data-tpl="minimal"] .tc-back{background:var(--paper);background-image:none;border:1px solid var(--ink)}
+:root[data-tpl="minimal"] .tc-mark{color:var(--ink);border:0;font-size:15px;letter-spacing:.8em;font-weight:300}
+:root[data-tpl="minimal"] .tc-tapme{color:var(--muted)}
+:root[data-tpl="minimal"] .tc-front{border:1px solid var(--ink)}
+:root[data-tpl="minimal"] .mini-task,
+:root[data-tpl="minimal"] .join{background:transparent;border:1px solid var(--line)}
+:root[data-tpl="minimal"] .wall{border:0;background:var(--bg);outline:1px solid var(--line);outline-offset:-14px}
+:root[data-tpl="minimal"] .wall-names{font-weight:200;letter-spacing:.42em}
+:root[data-tpl="minimal"] .wall-date{letter-spacing:.5em}
+:root[data-tpl="minimal"] .task-chip{border:0;padding:0;color:var(--muted);letter-spacing:.2em;display:flex;align-items:center;gap:12px}
+:root[data-tpl="minimal"] .task-chip::before{content:"";width:32px;border-top:1px solid currentColor;flex:none}
+:root[data-tpl="minimal"] .bless{font-weight:400;position:relative;padding-top:.5em}
+:root[data-tpl="minimal"] .bless::before{content:"“";position:absolute;top:-.35em;left:-.05em;font-size:2.4em;line-height:1;color:var(--line);font-family:Georgia,serif}
+:root[data-tpl="minimal"] .plate{display:block;font-size:12px;letter-spacing:.35em;color:var(--muted);font-variant-numeric:tabular-nums}
+:root[data-tpl="minimal"] .featured{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+:root[data-tpl="minimal"] .en-track{height:2px;margin-top:0;background:var(--line)}
+:root[data-tpl="minimal"] .en-fill{background:var(--ink)}
+:root[data-tpl="minimal"] .en-mark{width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:0;border:1px solid var(--ink);background:var(--bg)}
+:root[data-tpl="minimal"] .en-mark.on{background:var(--ink);box-shadow:none}
+:root[data-tpl="minimal"] .en-mark>span{top:14px;letter-spacing:.1em}
+:root[data-tpl="minimal"] .fl-count,:root[data-tpl="minimal"] .ul-title,:root[data-tpl="minimal"] .fl-result h2{font-weight:200;letter-spacing:.1em}
+:root[data-tpl="minimal"] .fl-kicker{background:transparent;color:var(--ink);border:1px solid var(--ink);animation:none}
+:root[data-tpl="minimal"] .rank{border-radius:0;background:var(--ink);color:var(--bg)}
+:root[data-tpl="minimal"] .fl-item{border:1px solid var(--line)}
+:root[data-tpl="minimal"] .fl-bar{background:var(--line);height:2px}
+:root[data-tpl="minimal"] .g-flash{animation:none;letter-spacing:.06em}
+:root[data-tpl="minimal"] .confetti{border-radius:0!important;width:6px;height:6px}
+:root[data-tpl="minimal"] .panel h3{letter-spacing:.3em;font-size:15px}
+:root[data-tpl="minimal"] .stat .n{font-weight:200}
+
+/* ---------- 復古港風 ---------- */
+:root[data-tpl="retro"] body{background-image:radial-gradient(rgba(232,176,75,.05) 1px,transparent 1.2px);background-size:6px 6px}
+:root[data-tpl="retro"] .topbar{border-bottom:4px double var(--accent2)}
+:root[data-tpl="retro"] .brand-name{color:#ffd9d4;text-shadow:0 0 4px var(--accent),0 0 12px var(--accent)}
+:root[data-tpl="retro"] .phone{border:4px double var(--accent2);border-radius:6px}
+:root[data-tpl="retro"] .g-head{border-bottom:2px solid var(--accent2);background:repeating-linear-gradient(90deg,transparent 0 18px,rgba(232,176,75,.06) 18px 19px)}
+:root[data-tpl="retro"] .g-names{color:#ffd9d4;text-shadow:0 0 4px var(--accent),0 0 14px var(--accent)}
+:root[data-tpl="retro"] .amp{color:var(--accent2);text-shadow:0 0 8px var(--accent2)}
+:root[data-tpl="retro"] .btn{border-radius:2px;font-family:var(--display);font-weight:900;letter-spacing:.18em;box-shadow:inset 0 0 0 2px var(--accent2)}
+:root[data-tpl="retro"] .btn.ghost{box-shadow:none;border-style:double;border-width:3px}
+:root[data-tpl="retro"] .btn.small{box-shadow:none;letter-spacing:.08em}
+:root[data-tpl="retro"] .panel,
+:root[data-tpl="retro"] .join,
+:root[data-tpl="retro"] .kind-btn{border:3px double var(--line);border-radius:3px}
+:root[data-tpl="retro"] .panel.host{border:4px double var(--accent)}
+:root[data-tpl="retro"] .mini-task{border-radius:0;background-image:radial-gradient(circle at 0 50%,var(--surface) 8px,transparent 8.5px),radial-gradient(circle at 100% 50%,var(--surface) 8px,transparent 8.5px);padding:12px 18px;border-top:2px dashed rgba(43,30,22,.25);border-bottom:2px dashed rgba(43,30,22,.25)}
+:root[data-tpl="retro"] .polaroid,:root[data-tpl="retro"] .tf{border-radius:2px;padding:12px 12px 16px}
+:root[data-tpl="retro"] .polaroid.big{padding:clamp(12px,1.4vw,20px)}
+:root[data-tpl="retro"] .polaroid img,:root[data-tpl="retro"] .tf img,:root[data-tpl="retro"] .mini img,:root[data-tpl="retro"] .fl-item img{filter:sepia(.28) contrast(1.06) saturate(.9)}
+:root[data-tpl="retro"] .polaroid::before,:root[data-tpl="retro"] .polaroid::after,
+:root[data-tpl="retro"] .tf::before,:root[data-tpl="retro"] .tf::after{content:"";position:absolute;width:26px;height:26px;z-index:2}
+:root[data-tpl="retro"] .polaroid::before,:root[data-tpl="retro"] .tf::before{top:4px;left:4px;background:linear-gradient(135deg,#2b1e16 50%,transparent 50.5%)}
+:root[data-tpl="retro"] .polaroid::after,:root[data-tpl="retro"] .tf::after{bottom:4px;right:4px;background:linear-gradient(-45deg,#2b1e16 50%,transparent 50.5%)}
+:root[data-tpl="retro"] .tc-back{border-radius:4px;border:6px double var(--accent2);background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 2px,transparent 2px 6px)}
+:root[data-tpl="retro"] .tc-back::before{content:"囍";position:absolute;font-family:var(--display);font-weight:900;font-size:130px;color:var(--accent2);opacity:.22;line-height:1}
+:root[data-tpl="retro"] .tc-mark{border:2px solid var(--accent2);color:var(--accent2);text-shadow:0 0 6px var(--accent2)}
+:root[data-tpl="retro"] .tc-front{border-radius:4px;border:3px double var(--accent)}
+:root[data-tpl="retro"] .wall{border:6px double var(--accent2);border-radius:4px;background:radial-gradient(ellipse at 50% 0%,var(--glow),transparent 65%),var(--bg)}
+:root[data-tpl="retro"] .wall-names{display:inline-block;color:#ffe2dc;padding:.12em .45em .18em;border:3px solid var(--accent);border-radius:6px;text-shadow:0 0 6px var(--accent),0 0 20px var(--accent),0 0 42px rgba(212,67,58,.6);box-shadow:0 0 14px rgba(212,67,58,.55),inset 0 0 14px rgba(212,67,58,.45);animation:flicker 6s infinite}
+@keyframes flicker{0%,92%,96%,100%{opacity:1}94%{opacity:.55}95%{opacity:.9}}
+:root[data-tpl="retro"] .wall-date{color:var(--accent2);margin-top:12px}
+:root[data-tpl="retro"] .task-chip{border:0;border-radius:0;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:900;letter-spacing:.16em;padding:4px 14px;box-shadow:inset 0 0 0 2px var(--accent2)}
+:root[data-tpl="retro"] .bless{color:#fbeedd}
+:root[data-tpl="retro"] .tally b{color:var(--accent2);text-shadow:0 0 10px rgba(232,176,75,.6)}
+:root[data-tpl="retro"] .en-track{height:10px;background:#0b1d1b;border:1px solid var(--line)}
+:root[data-tpl="retro"] .en-fill{background:var(--accent);box-shadow:0 0 10px var(--accent),0 0 22px var(--accent)}
+:root[data-tpl="retro"] .en-mark{border-radius:3px;background:#0b1d1b;border-color:var(--accent2)}
+:root[data-tpl="retro"] .en-mark.on{background:var(--accent2);box-shadow:0 0 12px var(--accent2)}
+:root[data-tpl="retro"] .flash,:root[data-tpl="retro"] .unlock{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 2px,transparent 2px 4px)}
+:root[data-tpl="retro"] .fl-count,:root[data-tpl="retro"] .fl-result h2{text-shadow:0 0 10px var(--flash-hi),0 0 30px rgba(232,176,75,.6)}
+:root[data-tpl="retro"] .ul-title{color:#ffe2dc;text-shadow:0 0 8px var(--accent),0 0 28px var(--accent),0 0 60px var(--accent)}
+:root[data-tpl="retro"] .fl-kicker{border-radius:2px;box-shadow:0 0 14px var(--accent)}
+:root[data-tpl="retro"] .thanks-photo{border:10px double var(--paper);border-radius:2px;filter:sepia(.2)}
+:root[data-tpl="retro"] .tk-names{color:#ffe2dc;text-shadow:0 0 6px var(--accent),0 0 22px var(--accent)}
+:root[data-tpl="retro"] .seg button.on{box-shadow:inset 0 0 0 1px var(--accent2)}
+
+:root[data-tpl="minimal"] .pc,:root[data-tpl="minimal"] .pc-front{--tilt:0deg!important;transform:none;box-shadow:none;border:1px solid var(--line)}
+:root[data-tpl="minimal"] .pc.flipin{animation:fadeup .7s both}
+:root[data-tpl="minimal"] .stamp{border:1px solid var(--ink)}
+:root[data-tpl="minimal"] .ema{animation-duration:6s}
+:root[data-tpl="minimal"] .beam{height:3px;border-radius:0;box-shadow:none;background:var(--ink)}
+:root[data-tpl="minimal"] .priv,:root[data-tpl="minimal"] .del-box,:root[data-tpl="minimal"] .story,:root[data-tpl="minimal"] .story-loading{border-radius:0}
+:root[data-tpl="forest"] .priv{border:1.5px dashed var(--line);border-radius:16px}
+:root[data-tpl="forest"] .pc{border-radius:4px}
+:root[data-tpl="retro"] .priv{border:3px double var(--line);border-radius:3px}
+:root[data-tpl="retro"] .pc{border:3px double color-mix(in srgb,var(--paper-ink) 30%,transparent)}
+:root[data-tpl="retro"] .pc-front{filter:sepia(.25)}
+:root[data-tpl="retro"] .beam{box-shadow:0 0 12px rgba(232,176,75,.35),0 4px 8px rgba(0,0,0,.4)}
+@media (max-width:860px){ :root[data-tpl="minimal"] .featured{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ *,*::before,*::after{animation:none!important;transition:none!important} }
+</style>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-name">拾光祝福牆</span><span class="demo-tag">展示版</span></div>
+  <nav class="seg" id="view-seg" aria-label="切換畫面">
+    <button type="button" data-view="guest" class="on">賓客手機</button>
+    <button type="button" data-view="wall">投影牆</button>
+    <button type="button" data-view="ctrl">控制台</button>
+  </nav>
+  <div class="pickers">
+    <label class="tpl-pick"><span>玩法</span>
+      <select id="game-select">
+        <option value="task">拍照任務牆</option>
+        <option value="tree">祝福之樹</option>
+        <option value="ema">祝福繪馬牆</option>
+        <option value="postcard">祝福明信片</option>
+      </select>
+    </label>
+    <label class="tpl-pick"><span>風格</span>
+      <select id="tpl-select">
+        <option value="forest">森林系</option>
+        <option value="minimal">簡約白</option>
+        <option value="retro">復古港風</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<main>
+  <section id="v-guest" class="view">
+    <div class="phone"><div id="guest"></div></div>
+    <p class="view-note">賓客掃描 QR code 後看到的畫面。選照片時會真的在手機端壓縮成「印刷用原圖」和「投影用縮圖」兩種尺寸。</p>
+  </section>
+
+  <section id="v-wall" class="view" hidden>
+    <div class="wall" id="wall">
+      <div class="wall-top">
+        <div><div class="wall-names" id="w-names"></div><div class="wall-date" id="w-date"></div></div>
+        <div class="wall-tools"><span class="paused" id="w-paused" hidden>輪播暫停中</span><button type="button" class="btn ghost small" id="w-full">全螢幕</button></div>
+      </div>
+      <div class="energy" id="energy">
+        <div class="en-label">祝福集氣 <b id="en-n">0</b></div>
+        <div class="en-track" id="en-track"><div class="en-fill" id="en-fill"></div></div>
+      </div>
+      <div class="screen" id="s-wall">
+        <div class="wall-main">
+          <div class="featured" id="featured"></div>
+          <div id="tree-wrap" hidden><canvas id="tree" aria-label="祝福之樹"></canvas><div class="tree-cap" id="tree-cap"></div></div>
+          <div id="ema-wrap" hidden></div>
+          <div id="pc-wrap" hidden><div class="pc-board" id="pc-board"></div></div>
+        </div>
+        <aside class="side">
+          <div class="join">
+            <div><div class="qr" id="qr"></div></div>
+            <div><div class="join-title">掃描 QR code</div><div class="join-sub" id="join-sub"></div><div class="qr-note">展示用示意連結</div></div>
+          </div>
+          <div class="tally"><span>已收到</span><b id="w-count">0</b><span>則祝福</span></div>
+          <div class="recent" id="recent"></div>
+          <div id="side-feat" hidden></div>
+        </aside>
+      </div>
+      <div class="screen" id="s-mosaic" hidden>
+        <div class="mosaic-wrap"><canvas id="mosaic" aria-label="祝福照片拼成的新人合照"></canvas></div>
+        <div class="mosaic-cap" id="mosaic-cap"></div>
+      </div>
+      <div class="screen" id="s-thanks" hidden><div id="thanks"></div></div>
+      <div class="wall-progress" id="w-progress"></div>
+
+      <div class="flash" id="flash" hidden>
+        <div class="fl-head"><span class="fl-kicker">限時快閃任務</span><span class="fl-count" id="fl-count">60</span></div>
+        <div class="fl-bar"><i id="fl-bar"></i></div>
+        <div id="fl-live">
+          <div class="fl-task" id="fl-task"></div>
+          <div class="fl-sub" id="fl-sub"></div>
+        </div>
+        <div class="fl-grid" id="fl-grid"></div>
+        <div class="fl-result" id="fl-result" hidden></div>
+      </div>
+      <div class="unlock" id="unlock" hidden></div>
+      <div class="stage" id="stage" hidden></div>
+    </div>
+  </section>
+
+  <section id="v-ctrl" class="view" hidden><div id="ctrl"></div></section>
+</main>
+
+<div id="lightbox" hidden></div>
+<div id="toast" role="status"></div>
+
+<script>
+/* ========== 可調整設定 ========== */
+const CFG = {
+  FULL_EDGE: 3000,        // 印刷用原圖長邊（px）
+  FULL_Q: 0.85,           // 原圖 JPEG 品質
+  FULL_MAX_BYTES: 2.3e6,  // 原圖上限，超過就降品質
+  THUMB_EDGE: 800,        // 投影用縮圖長邊
+  THUMB_Q: 0.8,
+  TEXT_MAX: 50,           // 祝福字數上限
+  REROLLS: 1,             // 每次可換卡次數
+  MOSAIC_COLS: 12, MOSAIC_ROWS: 8,
+  UNLOCK_SHOW_MS: 6500,   // 解鎖畫面停留時間
+  FLASH_RESULT_MS: 10000, // 快閃結果停留時間
+  QR_TEXT: 'https://example.com/wedding/demo-2026',
+  SHORT_URL: 'example.com/w/demo',   // 印在限動卡上，讓看到的人能回來看整面牆
+  EMA_TEXT_MAX: 40
+};
+// 集氣條預設門檻（控制台可改）
+const ENERGY_DEFAULT = [
+  {n:15, t:'新郎清唱一首情歌'},
+  {n:20, t:'新人當場親一個'},
+  {n:28, t:'抽出 3 位幸運賓客送禮物'}
+];
+// 快閃任務題庫
+const FLASH_PRESETS = [
+  '找一位穿紅色衣服的人，一起比愛心',
+  '全桌一起舉杯，對鏡頭喊乾杯',
+  '找到一位比你高 10 公分以上的人合照',
+  '跟一位長輩來張自拍',
+  '用手機燈光在桌上排出一個愛心',
+  '模仿新郎的招牌表情'
+];
+
+const CARDS = [
+  {cat:'溫馨', task:'翻出一張你和新人的舊照', prompt:'那時候的他們是怎樣的人？'},
+  {cat:'溫馨', task:'拍下你現在的表情，送給十週年的新人', prompt:'寫一句話，讓他們十年後再打開'},
+  {cat:'溫馨', task:'拍下今天陪你來的那個人', prompt:'分享一個你們家的相處祕訣'},
+  {cat:'搞笑', task:'在現場找一樣東西，代表婚姻最需要的', prompt:'為什麼是它？'},
+  {cat:'搞笑', task:'模仿入口婚紗照的姿勢', prompt:'給新人一個婚姻小建議'},
+  {cat:'搞笑', task:'拍你這桌最像新郎或新娘的人', prompt:'他哪裡像？順便祝福一下'},
+  {cat:'搞笑', task:'用桌上的東西排出一個字送給新人', prompt:'這個字代表什麼祝福？'},
+  {cat:'挑戰', task:'找一位今天第一次見面的賓客，一起比愛心', prompt:'兩個人合寫一句祝福'},
+  {cat:'挑戰', task:'找到跟你同年出生的賓客合照', prompt:'你們想對新人說'},
+  {cat:'挑戰', task:'全桌一起入鏡，喊出新人的名字', prompt:'代表全桌說一句'}
+];
+const CAT_CLS = {'溫馨':'cat-warm','搞笑':'cat-fun','挑戰':'cat-dare'};
+const KINDS = [
+  {id:'flower', name:'甜蜜之花', wish:'祝你們甜甜蜜蜜'},
+  {id:'leaf',   name:'平安之葉', wish:'祝你們平安健康'},
+  {id:'fruit',  name:'豐收之果', wish:'祝你們富足美滿'},
+  {id:'heart',  name:'同心之心', wish:'祝你們永結同心'}
+];
+const KIND_BY = Object.fromEntries(KINDS.map(k=>[k.id,k]));
+const EMA_MOTIFS = [
+  {id:'xi', name:'囍字', wish:'雙喜臨門'},
+  {id:'hearts', name:'雙心', wish:'心心相印'},
+  {id:'plum', name:'梅花', wish:'花開富貴'}
+];
+const EMA_BY = Object.fromEntries(EMA_MOTIFS.map(m=>[m.id,m]));
+const PC_DESIGNS = [
+  {id:'sea', name:'海邊夕陽'},
+  {id:'hill', name:'山林小徑'},
+  {id:'city', name:'城市夜景'},
+  {id:'garden', name:'花園午後'}
+];
+const PC_BY = Object.fromEntries(PC_DESIGNS.map(d=>[d.id,d]));
+// 範例句子：賓客點一句填入，再自己修改（控制台之後可開放新人自訂）
+const PHRASES = {
+  ema: ['白頭偕老，永浴愛河','百年好合，永結同心','早生貴子，家庭美滿','執子之手，與子偕老','花好月圓，喜結良緣','相知相守，甜蜜到老','平安喜樂，幸福長長久久','願你們天天都像今天一樣幸福','吵架不過夜，牽手到永遠'],
+  postcard: ['謝謝你們讓我見證這一天，新婚快樂！','從朋友變成家人，看著你們走到今天真好','以後的每個節日，都要一起過','祝你們的日子，比今天的喜酒還要甜','記得常常對彼此說謝謝和我愛你','下次換你們請我吃飯，順便看看新家','願你們把今天的心動，留到每一天'],
+  flower: ['祝你們甜甜蜜蜜，每天都像今天','願愛情像花一樣，一直開下去','甜蜜加倍，幸福滿滿'],
+  leaf: ['祝你們身體健康，平平安安','願你們一起慢慢變老','平安喜樂，就是最好的祝福'],
+  fruit: ['祝你們富足美滿，早日買房','事業順利，荷包滿滿','早生貴子，家庭美滿'],
+  heart: ['永結同心，白頭偕老','願你們永遠是彼此最好的朋友','吵架不過夜，牽手到永遠'],
+  task: ['新婚快樂！要一直這麼幸福','你們是我看過最登對的一對','以後吵架記得先遞面紙給對方','祝你們白頭偕老，永浴愛河','今天的你們真的超好看','謝謝你們讓我們聚在一起'],
+  flash: ['搶到了！新婚快樂','第一名送給新人','愛心送給你們','全桌祝福滿滿']
+};
+function phraseList(){
+  const m=composeMode();
+  if(m==='tree') return PHRASES[G.kind]||PHRASES.task;
+  return PHRASES[m]||PHRASES.task;
+}
+const GAME_INFO = {
+  task:{name:'拍照任務牆', join:'抽一張拍照任務，把祝福送上這面牆', go:'抽一張拍照任務', again:'再抽一張任務', kicker:'我完成了婚禮拍照任務'},
+  tree:{name:'祝福之樹', join:'選一種祝福，讓它長在新人的樹上', go:'開始寫祝福', again:'再送一則祝福', kicker:'我在新人的樹上留了一片祝福'},
+  ema:{name:'祝福繪馬牆', join:'寫一塊祝福繪馬，掛上新人的祈願架', go:'開始寫繪馬', again:'再寫一塊繪馬', kicker:'我掛上了一塊祝福繪馬'},
+  postcard:{name:'祝福明信片', join:'挑一張明信片，寄一句話給新人', go:'挑一張明信片', again:'再寄一張明信片', kicker:'我寄了一張明信片給新人'}
+};
+
+const SAMPLES = [
+  {name:'林阿姨', table:'3', cardId:0, kind:'flower', publicOk:true, text:'看著怡君從綁辮子的小女孩長到今天，真的好替你開心。'},
+  {name:'阿哲', table:'8', cardId:3, kind:'heart', anon:true, text:'拍了一包面紙：吵架時記得先遞一張給對方。'},
+  {name:'小芸', table:'5', cardId:4, kind:'flower', publicOk:true, text:'婚紗照姿勢我們模仿失敗了，但祝福是真心的！'},
+  {name:'陳伯伯', table:'1', cardId:9, kind:'fruit', privatePhoto:true, text:'一桌十個人，一起祝你們白頭偕老、早生貴子。'},
+  {name:'Kevin', table:'8', cardId:6, kind:'heart', text:'全桌只排得出一個「甜」，剛好送給你們。'},
+  {name:'婉婷', table:'6', cardId:5, kind:'leaf', text:'我們這桌最像新郎的是阿凱，一樣愛講冷笑話。'},
+  {name:'志明', table:'8', cardId:3, kind:'leaf', text:'找到前任送的杯子，提醒新郎要珍惜眼前人XD'},
+  {name:'淑芬', table:'2', cardId:1, kind:'flower', text:'十週年的你們，希望還是會牽手去買早餐。'},
+  {name:'王奶奶', table:'1', kind:'leaf', noPhoto:true, text:'乖孫，要互相疼惜，身體健康最重要。'},
+  {name:'張叔叔', table:'2', kind:'fruit', noPhoto:true, text:'祝你們事業順利，早日買房。'},
+  {name:'舅媽', table:'1', kind:'heart', noPhoto:true, text:'兩個人要同心，日子就會越過越甜。'},
+  {name:'阿伯', table:'3', kind:'fruit', noPhoto:true, text:'早生貴子，阿伯等著包紅包。'}
+];
+const SIM = [
+  {name:'育成', table:'4', cardId:7, text:'剛認識的新朋友說：祝你們每天都像今天一樣好看。'},
+  {name:'雅婷', table:'7', cardId:2, text:'我家的祕訣是：誰煮飯，另一個就洗碗。'},
+  {name:'阿嬤', table:'1', cardId:0, text:'阿孫終於娶某了，要互相照顧，有閒常轉來。'},
+  {name:'大學室友小凱', table:'9', cardId:5, text:'新郎大學時每天睡到中午，怡君辛苦了。'},
+  {name:'佩琪', table:'5', cardId:8, text:'同年的我們祝你們：比我們先存到第一桶金。'},
+  {name:'王經理', table:'10', cardId:9, text:'業務部全體祝福：婚姻的業績年年成長！'},
+  {name:'小安', table:'6', cardId:4, text:'建議：吵架不要超過一個晚上，宵夜可以解決一切。'},
+  {name:'美玲', table:'3', cardId:1, text:'十年後的你們，記得再穿一次今天的衣服拍照。'},
+  {name:'志豪', table:'9', cardId:6, text:'排了一個「福」字，祝福滿滿。'},
+  {name:'惠珍', table:'4', cardId:2, text:'願你們像今天一樣，一直笑著看對方。'}
+];
+const FLASH_NAMES = ['阿凱','小美','Jason','佳穎','阿德','宜庭','俊宏','曉君','大頭','欣怡','建志','Amy','老陳','小葵'];
+const FLASH_TEXTS = ['搶到了！','我們最快！','新婚快樂！','第8桌衝第一','愛心送給新人',''];
+
+/* ========== 狀態 ========== */
+const S = {
+  view:'guest', tpl:'forest', game:'task',
+  couple:{a:'家豪', b:'怡君', date:'2026.12.20'}, couplePhoto:null,
+  review:false, paused:false, interval:7, screen:'wall', revealed:false,
+  posts:[], queue:[], featId:null, cyc:-1, lastSwitch:Date.now(),
+  auto:false, lastAuto:0, filter:'all', includeHidden:false,
+  energy:{on:true, ms:ENERGY_DEFAULT.map(m=>({...m, unlocked:false}))},
+  unlockQ:[], unlockShowing:false,
+  flash:null, flashSim:true, nextFlashSim:0, flashSeq:0,
+  born:new Map(),
+  hashtag:'#家豪怡君的婚禮', keepDays:90,
+  rackKey:'', boardKey:''
+};
+let uid = 0;
+const G = {step:'checkin', checked:false, mode:'normal', wantFlash:false, flashDone:null, name:'', table:'', card:null, kind:null, ema:null, pc:null,
+  rerolls:CFG.REROLLS, flipped:false, proc:null, busy:false, text:'', err:'', last:null, bannerOn:false,
+  priv:{anon:false, privatePhoto:false, publicOk:false}, privOpen:true,
+  storyFmt:'916', storyURL:null, storyBlob:null, shareHint:false, confirmDel:false, storyJob:0};
+
+/* ========== 小工具 ========== */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtSize = b => b >= 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.max(1, Math.round(b/1024))+' KB';
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const idNum = id => parseInt(id.slice(1),10);
+const tiltOf = id => ((idNum(id)*37) % 7 - 3) * 0.9;
+const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+const printCm = (w,h) => `${Math.round(w/300*2.54)}×${Math.round(h/300*2.54)} cm`;
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2400); }
+function visible(){ return S.posts.filter(p=>p.status==='shown').sort((a,b)=>a.ts-b.ts); }
+function kindOf(p){ return p.kind || KINDS[idNum(p.id)%4].id; }
+function emaOf(p){ return p.ema || EMA_MOTIFS[idNum(p.id)%3].id; }
+function pcOf(p){ return p.pc || PC_DESIGNS[idNum(p.id)%4].id; }
+// 隱私：投影與公開頁一律透過這兩個函式取名字和照片
+function dispName(p){ return p.anon ? '一位賓客' : p.name; }
+function wallThumb(p){ return p.privatePhoto ? null : p.thumb; }
+function chipText(p){
+  if(p.flashTask) return `快閃任務｜${p.flashTask}`;
+  if(p.cardId!=null) return `${CARDS[p.cardId].cat}任務｜${CARDS[p.cardId].task}`;
+  if(p.ema) return `祝福繪馬｜${EMA_BY[p.ema].name}`;
+  if(p.pc) return `明信片｜${PC_BY[p.pc].name}`;
+  return `祝福之樹｜${KIND_BY[kindOf(p)].name}`;
+}
+function motifSVG(id, s=40){
+  const inner = id==='xi'
+    ? `<text x="20" y="31" text-anchor="middle" font-size="30" font-weight="900" fill="currentColor" style="font-family:var(--display)">囍</text>`
+    : id==='hearts'
+    ? `<g transform="translate(-5 2) scale(.78)"><path d="${D_HEART}" fill="currentColor"/></g><g transform="translate(13 6) scale(.68)"><path d="${D_HEART}" fill="currentColor" opacity=".75"/></g>`
+    : `<g fill="currentColor">${[0,72,144,216,288].map(a=>`<circle cx="20" cy="10.5" r="7" transform="rotate(${a} 20 20)"/>`).join('')}</g><circle cx="20" cy="20" r="4.5" fill="#f5d36b"/>`;
+  return `<svg viewBox="0 0 40 40" width="${s}" height="${s}" aria-hidden="true">${inner}</svg>`;
+}
+function emaHTML(p, cls=''){
+  const m=emaOf(p);
+  return `<div class="ema ${cls}" data-id="${p.id}" style="--sw:${(2.6+(idNum(p.id)%7)*.25).toFixed(2)}s;--d:${-((idNum(p.id)*0.37)%3).toFixed(2)}s">
+    <div class="ema-board"><span class="ema-hole"></span><span class="ema-motif" style="color:${m==='xi'?'var(--ema-string)':'var(--k-heart)'}">${motifSVG(m,40)}</span>
+    <div class="ema-text">${esc(p.text||'新婚快樂')}</div><div class="ema-name">${esc(dispName(p))}</div></div></div>`;
+}
+function pcBackHTML(p, cls=''){
+  const d=S.couple.date.replace(/\s/g,'');
+  return `<div class="pc ${cls}" data-id="${p.id}" style="--tilt:${(((idNum(p.id)*29)%9)-4)*.7}deg">
+    <div class="pc-msg">${esc(p.text||'新婚快樂！')}</div>
+    <div class="pc-side">
+      <div class="stamp" style="color:var(--stamp)">${motifSVG(emaOf(p),34)}</div>
+      <div class="pm">${esc(d)}<br>喜訊郵局</div>
+      <div class="pc-lines"><div class="pc-to">To ${esc(S.couple.a)} &amp; ${esc(S.couple.b)}</div><div class="pc-to">From ${esc(dispName(p))}</div></div>
+    </div></div>`;
+}
+function rr(x,X,Y,W,H,R){ x.beginPath(); x.moveTo(X+R,Y); x.arcTo(X+W,Y,X+W,Y+H,R); x.arcTo(X+W,Y+H,X,Y+H,R); x.arcTo(X,Y+H,X,Y,R); x.arcTo(X,Y,X+W,Y,R); x.closePath(); }
+function drawCover(x, im, dx, dy, dw, dh){
+  const iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height; if(!iw) return;
+  const s=Math.max(dw/iw, dh/ih), sw=dw/s, sh=dh/s;
+  x.drawImage(im, (iw-sw)/2, (ih-sh)/2, sw, sh, dx, dy, dw, dh);
+}
+function flashLive(){ return S.flash && S.flash.phase==='live'; }
+function flashLeft(){ return S.flash ? Math.max(0, Math.ceil((S.flash.end-Date.now())/1000)) : 0; }
+
+/* 祝福種類圖示：SVG（介面用）與 canvas（樹上用）共用同一組形狀 */
+const D_LEAF='M20 4 C34 12 34 30 20 36 C6 30 6 12 20 4Z';
+const D_HEART='M20 34 C6 24 4 14 11 9 C15 6 19 8 20 12 C21 8 25 6 29 9 C36 14 34 24 20 34Z';
+const D_STEM='M20 11 C22 6 27 5 30 6 C28 10 24 12 20 11Z';
+function kindSVG(k, s=40){
+  const c=`var(--k-${k})`;
+  const shapes={
+    flower:`<g fill="${c}">${[0,72,144,216,288].map(a=>`<ellipse cx="20" cy="10" rx="6.5" ry="9" transform="rotate(${a} 20 20)"/>`).join('')}</g><circle cx="20" cy="20" r="5" fill="#f5d36b"/>`,
+    leaf:`<path d="${D_LEAF}" fill="${c}"/><path d="M20 8 V34" stroke="rgba(0,0,0,.22)" stroke-width="1.5"/>`,
+    fruit:`<circle cx="20" cy="23" r="12" fill="${c}"/><path d="${D_STEM}" fill="var(--k-leaf)"/>`,
+    heart:`<path d="${D_HEART}" fill="${c}"/>`
+  };
+  return `<svg viewBox="0 0 40 40" width="${s}" height="${s}" aria-hidden="true">${shapes[k]}</svg>`;
+}
+const P_LEAF=new Path2D(D_LEAF), P_HEART=new Path2D(D_HEART), P_STEM=new Path2D(D_STEM);
+function drawKind(x,k,cx,cy,s,rot,col){
+  x.save(); x.translate(cx,cy); x.rotate(rot||0); x.scale(s/40,s/40); x.translate(-20,-20);
+  if(k==='flower'){
+    x.fillStyle=col.flower;
+    for(let a=0;a<5;a++){ x.save(); x.translate(20,20); x.rotate(a*1.2566); x.beginPath(); x.ellipse(0,-10,6.5,9,0,0,Math.PI*2); x.fill(); x.restore(); }
+    x.fillStyle='#f5d36b'; x.beginPath(); x.arc(20,20,5,0,Math.PI*2); x.fill();
+  } else if(k==='leaf'){ x.fillStyle=col.leaf; x.fill(P_LEAF); }
+  else if(k==='fruit'){ x.fillStyle=col.fruit; x.beginPath(); x.arc(20,23,12,0,Math.PI*2); x.fill(); x.fillStyle=col.leaf; x.fill(P_STEM); }
+  else { x.fillStyle=col.heart; x.fill(P_HEART); }
+  x.restore();
+}
+
+/* ========== 範例圖片（純程式繪製） ========== */
+function genSample(seed){
+  const c=document.createElement('canvas'); c.width=640; c.height=800; const x=c.getContext('2d');
+  const h=(seed*53)%360;
+  const g=x.createLinearGradient(0,0,640,800);
+  g.addColorStop(0,`hsl(${h} 45% 80%)`); g.addColorStop(1,`hsl(${(h+35)%360} 38% 46%)`);
+  x.fillStyle=g; x.fillRect(0,0,640,800);
+  let r=seed*7919+13; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
+  for(let i=0;i<16;i++){ x.fillStyle=`rgba(255,255,255,${0.07+rnd()*0.18})`; x.beginPath(); x.arc(rnd()*640, rnd()*460, 18+rnd()*60, 0, 7); x.fill(); }
+  const n=1+Math.floor(rnd()*3);
+  for(let i=0;i<n;i++){
+    const cx=640*(i+1)/(n+1), s=.78+rnd()*.3;
+    x.fillStyle=`hsl(${(h+190)%360} 22% ${20+i*7}%)`;
+    x.beginPath(); x.arc(cx, 440-40*s, 60*s, 0, 7); x.fill();
+    rr(x, cx-92*s, 505-18*s, 184*s, 360, 78*s); x.fill();
+  }
+  x.fillStyle='rgba(255,255,255,.88)'; x.font='500 24px "Noto Sans TC",sans-serif'; x.textAlign='right';
+  x.fillText('範例照片', 612, 772);
+  return c.toDataURL('image/jpeg', .82);
+}
+function heart(x,cx,cy,s){
+  x.beginPath(); x.moveTo(cx, cy+s*.35);
+  x.bezierCurveTo(cx-s*1.1, cy-s*.45, cx-s*.45, cy-s*1.15, cx, cy-s*.45);
+  x.bezierCurveTo(cx+s*.45, cy-s*1.15, cx+s*1.1, cy-s*.45, cx, cy+s*.35);
+  x.fill();
+}
+function genCouple(){
+  const c=document.createElement('canvas'); c.width=1200; c.height=800; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,800);
+  g.addColorStop(0,'#f6d9bb'); g.addColorStop(.55,'#e7a58e'); g.addColorStop(1,'#666a8c');
+  x.fillStyle=g; x.fillRect(0,0,1200,800);
+  x.fillStyle='rgba(255,242,224,.9)'; x.beginPath(); x.arc(600,500,160,0,7); x.fill();
+  x.fillStyle='#4a5a49'; x.beginPath(); x.moveTo(0,630); x.quadraticCurveTo(300,550,600,610); x.quadraticCurveTo(900,670,1200,590); x.lineTo(1200,800); x.lineTo(0,800); x.fill();
+  x.fillStyle='#2b2933';
+  x.beginPath(); x.arc(548,398,34,0,7); x.fill(); rr(x,506,436,84,196,30); x.fill();
+  x.beginPath(); x.arc(656,408,32,0,7); x.fill();
+  x.beginPath(); x.moveTo(636,442); x.lineTo(678,442); x.lineTo(730,640); x.lineTo(590,640); x.closePath(); x.fill();
+  x.fillStyle='#fff4ea'; heart(x,602,330,30);
+  x.fillStyle='rgba(255,255,255,.88)'; x.font='500 24px "Noto Sans TC",sans-serif'; x.textAlign='right';
+  x.fillText('範例新人照（控制台可換成真實照片）',1172,772);
+  return c.toDataURL('image/jpeg', .88);
+}
+
+// 明信片正面插畫（純程式繪製，正式版可換成插畫師作品）
+function genDesign(id){
+  const c=document.createElement('canvas'); c.width=900; c.height=600; const x=c.getContext('2d');
+  let r=id.length*977+7; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
+  if(id==='sea'){
+    const g=x.createLinearGradient(0,0,0,360); g.addColorStop(0,'#f3b28a'); g.addColorStop(1,'#f7d9b5'); x.fillStyle=g; x.fillRect(0,0,900,360);
+    x.fillStyle='#fff3dc'; x.beginPath(); x.arc(450,350,90,0,Math.PI*2); x.fill();
+    const s=x.createLinearGradient(0,350,0,600); s.addColorStop(0,'#4f8fa8'); s.addColorStop(1,'#26546b'); x.fillStyle=s; x.fillRect(0,350,900,250);
+    x.strokeStyle='rgba(255,240,220,.55)'; x.lineWidth=3; for(let i=0;i<14;i++){ const y=380+i*16, w=40+rnd()*160, cx=150+rnd()*600; x.beginPath(); x.moveTo(cx-w/2,y); x.lineTo(cx+w/2,y); x.stroke(); }
+  } else if(id==='hill'){
+    x.fillStyle='#dfe8d2'; x.fillRect(0,0,900,600);
+    [['#a9c08e',330],['#7f9c69',400],['#56734a',470]].forEach(([col,y],k)=>{ x.fillStyle=col; x.beginPath(); x.moveTo(0,y); for(let i=0;i<=9;i++) x.quadraticCurveTo(i*100+50,y-40-rnd()*50,i*100+100,y-rnd()*20); x.lineTo(900,600); x.lineTo(0,600); x.fill();
+      for(let t=0;t<6;t++){ const tx=rnd()*900, ty=y-10+rnd()*40, h=50+rnd()*50; x.fillStyle='#3e5a37'; x.beginPath(); x.moveTo(tx,ty-h); x.lineTo(tx+h*.32,ty); x.lineTo(tx-h*.32,ty); x.fill(); } });
+    x.strokeStyle='#efe4cc'; x.lineWidth=14; x.beginPath(); x.moveTo(470,600); x.bezierCurveTo(430,540,520,500,480,440); x.stroke();
+  } else if(id==='city'){
+    const g=x.createLinearGradient(0,0,0,600); g.addColorStop(0,'#1d2a4a'); g.addColorStop(1,'#3d3a63'); x.fillStyle=g; x.fillRect(0,0,900,600);
+    x.fillStyle='#fff4d6'; x.beginPath(); x.arc(720,110,46,0,Math.PI*2); x.fill();
+    for(let i=0;i<60;i++){ x.fillStyle=`rgba(255,255,255,${.3+rnd()*.5})`; x.fillRect(rnd()*900,rnd()*300,2,2); }
+    let bx=0; while(bx<900){ const w=50+rnd()*80, h=160+rnd()*260; x.fillStyle='#141a30'; x.fillRect(bx,600-h,w-4,h);
+      for(let wy=600-h+14; wy<590; wy+=22) for(let wx=bx+8; wx<bx+w-14; wx+=16) if(rnd()<.45){ x.fillStyle=rnd()<.5?'#f6c86a':'#ffe7a8'; x.fillRect(wx,wy,7,10); }
+      bx+=w; }
+  } else {
+    x.fillStyle='#f6ece0'; x.fillRect(0,0,900,600);
+    const col={flower:'#e494a8', leaf:'#8fb27a', fruit:'#e3b04f', heart:'#d2584d'};
+    for(let i=0;i<70;i++){ const k=['flower','leaf','flower','fruit','heart'][Math.floor(rnd()*5)]; drawKind(x,k,rnd()*900,rnd()*600,30+rnd()*40,rnd()*6,col); }
+  }
+  x.fillStyle='rgba(255,255,255,.92)'; x.font='italic 600 46px Georgia,"Times New Roman",serif'; x.textAlign='left';
+  x.shadowColor='rgba(0,0,0,.35)'; x.shadowBlur=8; x.fillText('Just Married', 40, 80); x.shadowBlur=0;
+  return c.toDataURL('image/jpeg',.86);
+}
+const DESIGN_URL = {};
+
+/* ========== 照片壓縮：印刷用原圖 + 投影用縮圖 ========== */
+function loadImgURL(url){ return new Promise((ok,no)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=no; im.src=url; }); }
+function toBlob(cv,q){ return new Promise(ok=>cv.toBlob(ok,'image/jpeg',q)); }
+async function resizeTo(src, edge, q){
+  const w=src.naturalWidth||src.width, h=src.naturalHeight||src.height;
+  const s=Math.min(1, edge/Math.max(w,h)), W=Math.round(w*s), H=Math.round(h*s);
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,W,H); x.drawImage(src,0,0,W,H);
+  return {blob: await toBlob(cv,q), w:W, h:H};
+}
+function blobToDataURL(b){ return new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.readAsDataURL(b); }); }
+async function decodeFile(file){
+  try { return await createImageBitmap(file, {imageOrientation:'from-image'}); }
+  catch(e){ return await loadImgURL(URL.createObjectURL(file)); }
+}
+async function processImage(file){
+  const src = await decodeFile(file);
+  let full = await resizeTo(src, CFG.FULL_EDGE, CFG.FULL_Q);
+  if(full.blob.size > CFG.FULL_MAX_BYTES) full = await resizeTo(src, CFG.FULL_EDGE, .72);
+  if(full.blob.size > CFG.FULL_MAX_BYTES) full = await resizeTo(src, 2400, .72);
+  const thumb = await resizeTo(src, CFG.THUMB_EDGE, CFG.THUMB_Q);
+  return {
+    full: URL.createObjectURL(full.blob), fullSize: full.blob.size, fullW: full.w, fullH: full.h,
+    thumb: await blobToDataURL(thumb.blob), thumbSize: thumb.blob.size, origSize: file.size
+  };
+}
+
+/* ========== 投稿 ========== */
+function createPost(d){
+  const p = Object.assign({id:'p'+(++uid), ts:Date.now(), pinned:false, status:S.review?'pending':'shown'}, d);
+  S.posts.push(p);
+  S.born.set(p.id, performance.now());
+  if(p.status==='shown') queueNow(p.id);
+  refresh();
+  return p;
+}
+function queueNow(id){
+  S.queue.push(id);
+  S.lastSwitch = Math.min(S.lastSwitch, Date.now() - S.interval*1000 + 1200);
+}
+function simPhoto(){ const t=genSample(11+Math.floor(Math.random()*80)); return {thumb:t, full:null, sample:true, fullW:2400, fullH:3000, fullSize:1.2e6+Math.random()*7e5, thumbSize:t.length*.75}; }
+function simulate(){
+  if(flashLive()){
+    const name=FLASH_NAMES[Math.floor(Math.random()*FLASH_NAMES.length)];
+    createPost(Object.assign({name, table:String(1+Math.floor(Math.random()*12)), cardId:null, flashId:S.flash.id, flashTask:S.flash.task,
+      text:FLASH_TEXTS[Math.floor(Math.random()*FLASH_TEXTS.length)]}, simPhoto()));
+    return;
+  }
+  const s = SIM[Math.floor(Math.random()*SIM.length)];
+  const priv = {anon:Math.random()<.15, publicOk:Math.random()<.5};
+  if(S.game==='ema'){
+    createPost(Object.assign({name:s.name, table:s.table, cardId:null, ema:EMA_MOTIFS[Math.floor(Math.random()*3)].id, text:s.text.slice(0,CFG.EMA_TEXT_MAX), sample:true, thumb:null}, priv));
+  } else if(S.game==='postcard'){
+    const withPhoto=Math.random()<.4;
+    createPost(Object.assign({name:s.name, table:s.table, cardId:null, pc:PC_DESIGNS[Math.floor(Math.random()*4)].id, text:s.text, sample:true}, priv, withPhoto?simPhoto():{thumb:null}));
+  } else if(S.game==='tree'){
+    const withPhoto=Math.random()<.5;
+    createPost(Object.assign({name:s.name, table:s.table, cardId:null, kind:KINDS[Math.floor(Math.random()*4)].id, text:s.text, sample:true}, withPhoto?simPhoto():{thumb:null}));
+  } else {
+    createPost(Object.assign({}, s, simPhoto()));
+  }
+  toast(`${s.name} 送出了一則祝福${S.review?'（待審核）':''}`);
+}
+function setStatus(id, st){
+  const p=S.posts.find(q=>q.id===id); if(!p) return;
+  const was=p.status; p.status=st;
+  if(st==='shown' && was!=='shown') queueNow(id);
+  if(st!=='shown') p.pinned=false;
+  refresh();
+}
+
+/* ========== 投影牆：輪播 ========== */
+function advance(){
+  const vis = visible();
+  S.lastSwitch = Date.now();
+  while(S.queue.length){
+    const id = S.queue.shift();
+    if(vis.some(p=>p.id===id)){ S.featId=id; drawFeatured(); return; }
+  }
+  if(!vis.length){ S.featId=null; drawFeatured(); return; }
+  const cycle = vis.concat(vis.filter(p=>p.pinned));
+  let i = (S.cyc+1) % cycle.length;
+  if(cycle[i].id===S.featId && cycle.length>1) i=(i+1)%cycle.length;
+  S.cyc=i; S.featId=cycle[i].id; drawFeatured();
+}
+function drawFeatured(force){
+  const p=S.posts.find(q=>q.id===S.featId);
+  if(S.game==='tree'){ drawTreeFeat(p, force); drawTree(); return; }
+  if(S.game==='ema'||S.game==='postcard'){
+    drawSideFeat(p, force);
+    document.querySelectorAll('#ema-wrap .ema, #pc-board .pc').forEach(e=>e.classList.toggle('feat', e.dataset.id===S.featId));
+    return;
+  }
+  const el=$('#featured');
+  if(!p){
+    if(el.dataset.id==='none') return;
+    el.dataset.id='none';
+    el.innerHTML=`<div class="empty-wall"><div class="empty-title">等待第一則祝福</div><p>賓客掃描右側 QR code 後，照片會出現在這裡。</p></div>`;
+    return;
+  }
+  if(!force && el.dataset.id===p.id) return;
+  el.dataset.id=p.id;
+  const wt=wallThumb(p);
+  const visual = wt
+    ? `<figure class="polaroid big" style="--tilt:${tiltOf(p.id)}deg"><img src="${wt}" alt="${esc(dispName(p))} 上傳的照片"></figure>`
+    : `<div class="note" style="--tilt:${tiltOf(p.id)}deg">${kindSVG(kindOf(p),120)}</div>`;
+  el.innerHTML = `${visual}
+    <div class="feat-text">
+      <div class="plate">No. ${String(idNum(p.id)).padStart(3,'0')}</div>
+      <div class="task-chip">${esc(chipText(p))}</div>
+      <blockquote class="bless">${esc(p.text||'（只留下照片）')}</blockquote>
+      <div class="sign">— ${esc(dispName(p))}${p.table&&!p.anon?`．第 ${esc(p.table)} 桌`:''}</div>
+      ${p.pinned?'<div class="pin-tag">置頂祝福</div>':''}
+    </div>`;
+  el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+}
+function drawSideFeat(p, force){
+  const el=$('#side-feat');
+  if(!p){ el.dataset.id='none'; el.innerHTML=`<div class="side-cap">等待第一則祝福</div>`; return; }
+  if(!force && el.dataset.id===p.id) return;
+  el.dataset.id=p.id;
+  if(S.game==='ema'){
+    el.innerHTML=`<div class="side-ema">${emaHTML(p,'big')}<div class="side-cap">${esc(EMA_BY[emaOf(p)].name)}繪馬．${esc(dispName(p))}${p.table&&!p.anon?`．第 ${esc(p.table)} 桌`:''}</div></div>`;
+  } else {
+    const wt=wallThumb(p);
+    el.innerHTML=`<div class="side-pc" style="animation:fadeup .8s both"><img class="pc-front" src="${wt||DESIGN_URL[pcOf(p)]}" alt="明信片正面">${pcBackHTML(p)}</div>`;
+  }
+}
+function renderRack(){
+  const wrap=$('#ema-wrap'); const W=wrap.clientWidth||900;
+  const pw=Math.max(78,Math.min(132,window.innerWidth*.084));
+  const per=Math.max(3,Math.min(8,Math.floor(W/(pw+16))));
+  const items=visible().slice(-per*3).reverse();
+  const key=per+'|'+items.map(p=>p.id+(p.anon?'a':'')).join(',');
+  if(key===S.rackKey){ return; }
+  const prev=new Set((S.rackKey.split('|')[1]||'').split(',').map(s=>s.replace(/a$/,'')).filter(Boolean));
+  S.rackKey=key;
+  let html='';
+  for(let r=0;r<3;r++){
+    const row=items.slice(r*per,(r+1)*per);
+    html+=`<div class="beam-row"><div class="beam"></div><div class="hangs">${row.map(p=>emaHTML(p,(prev.size&&!prev.has(p.id))?'drop':'')).join('')}</div></div>`;
+  }
+  wrap.innerHTML=html;
+}
+function renderBoard(){
+  const items=visible().slice(-12).reverse();
+  const key=items.map(p=>p.id+(p.anon?'a':'')).join(',');
+  if(key===S.boardKey) return;
+  const prev=new Set(S.boardKey.split(',').map(s=>s.replace(/a$/,'')).filter(Boolean));
+  S.boardKey=key;
+  $('#pc-board').innerHTML=items.map(p=>pcBackHTML(p,(prev.size&&!prev.has(p.id))?'flipin':'')).join('');
+}
+function drawTreeFeat(p, force){
+  const el=$('#side-feat');
+  if(!p){ el.dataset.id='none'; el.innerHTML=`<div class="tf"><div class="tf-bless">等待第一片祝福長出來</div></div>`; return; }
+  if(!force && el.dataset.id===p.id) return;
+  el.dataset.id=p.id;
+  const k=KIND_BY[kindOf(p)], wt=wallThumb(p);
+  el.innerHTML = `<div class="tf enter">
+    ${wt?`<img src="${wt}" alt="">`:''}
+    <div class="tf-kind">${kindSVG(k.id,22)}<span>${k.name}${p.flashTask?'．快閃照片':''}</span></div>
+    <blockquote class="tf-bless">${esc(p.text||'（只留下照片）')}</blockquote>
+    <div class="tf-sign">— ${esc(dispName(p))}${p.table&&!p.anon?`．第 ${esc(p.table)} 桌`:''}</div></div>`;
+}
+function updateWall(){
+  const g=S.game, task=g==='task';
+  $('#w-names').innerHTML = `${esc(S.couple.a)}<span class="amp">&amp;</span>${esc(S.couple.b)}`;
+  $('#w-date').textContent = S.couple.date;
+  $('#join-sub').textContent = GAME_INFO[g].join;
+  const vis=visible();
+  $('#w-count').textContent = vis.length;
+  $('#w-paused').hidden = !S.paused || S.screen!=='wall';
+  $('#featured').hidden = !task;
+  $('#tree-wrap').hidden = g!=='tree';
+  $('#ema-wrap').hidden = g!=='ema';
+  $('#pc-wrap').hidden = g!=='postcard';
+  $('#recent').hidden = !task;
+  $('#side-feat').hidden = task;
+  if(task){
+    $('#recent').innerHTML = vis.filter(p=>wallThumb(p)).slice(-12).reverse().map(p=>
+      `<figure class="mini" style="--tilt:${tiltOf(p.id)}deg"><img src="${wallThumb(p)}" alt=""><span>${esc(dispName(p))}</span></figure>`).join('');
+  }
+  if(g==='ema' && S.screen==='wall') renderRack();
+  if(g==='postcard' && S.screen==='wall') renderBoard();
+  ['wall','mosaic','thanks'].forEach(k=>{ $('#s-'+k).hidden = S.screen!==k; });
+  $('#w-progress').hidden = S.screen!=='wall';
+  updateEnergyBar();
+}
+function drawQR(){
+  const el=$('#qr'); el.innerHTML='';
+  if(window.QRCode){
+    new QRCode(el, {text:CFG.QR_TEXT, width:256, height:256, colorDark:css('--paper-ink'), colorLight:css('--paper'), correctLevel:QRCode.CorrectLevel.M});
+  } else el.textContent='QR code';
+}
+
+/* ========== 祝福之樹 ========== */
+const TREE = (()=>{
+  let r=11; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
+  const segs=[], slots=[];
+  const clampA=a=>Math.max(-Math.PI+0.3, Math.min(-0.3, a));
+  function br(x,y,ang,len,w,d){
+    const x2=x+Math.cos(ang)*len, y2=y+Math.sin(ang)*len;
+    segs.push({x1:x,y1:y,x2,y2,w});
+    if(d>=3) slots.push({x:x2,y:y2});
+    if(d>=4) slots.push({x:(x+x2)/2+(rnd()-.5)*16, y:(y+y2)/2+(rnd()-.5)*16});
+    if(d>=6){ for(let k=0;k<3;k++) slots.push({x:x2+(rnd()-.5)*46, y:y2+(rnd()-.5)*46}); return; }
+    const n = d<1 ? 2 : (rnd()<.4?3:2);
+    for(let i=0;i<n;i++){
+      const spread=.38+rnd()*.22;
+      const off = n===2 ? (i?spread:-spread) : (i-1)*spread*1.1;
+      br(x2,y2,clampA(ang+off+(rnd()-.5)*.25), len*(.7+rnd()*.12), w*.66, d+1);
+    }
+  }
+  br(500,800,-Math.PI/2,200,40,0);
+  // 由樹冠中心往外長
+  const cx=500, cy=380;
+  const order=slots.map((s,i)=>({i, k:Math.hypot(s.x-cx,(s.y-cy)*1.2)+rnd()*160})).sort((a,b)=>a.k-b.k).map(o=>o.i);
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  [...segs.flatMap(s=>[{x:s.x1,y:s.y1},{x:s.x2,y:s.y2}]),...slots].forEach(p=>{ minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x); minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y); });
+  const rot = slots.map(()=>(rnd()-.5)*1.6);
+  return {segs, slots, order, rot, bounds:{minX:minX-30,maxX:maxX+30,minY:minY-30,maxY:maxY+24}};
+})();
+let treeRaf=null;
+function treeStage(n){ return n<10?'冒出新芽':n<25?'枝葉漸漸茂密':n<50?'綠意盎然':'開花結果'; }
+function drawTree(){
+  if(S.game!=='tree' || S.screen!=='wall') return;
+  const cv=$('#tree'), W=cv.parentElement.clientWidth; if(!W) return;
+  const b=TREE.bounds, bw=b.maxX-b.minX, bh=b.maxY-b.minY;
+  const H=Math.round(Math.min(W*bh/bw, Math.max(320, window.innerHeight*0.62)));
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(W*dpr) || cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  cv.style.height=H+'px';
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+  const s=Math.min(W/bw, H/bh), ox=(W-bw*s)/2-b.minX*s, oy=H-bh*s-b.minY*s;
+  const P=(px,py)=>[ox+px*s, oy+py*s];
+  // 地面
+  x.fillStyle=css('--line'); x.globalAlpha=.6; x.beginPath(); const [gx,gy]=P(500,800); x.ellipse(gx,gy,Math.min(W*.3,260*s),14*s+4,0,0,Math.PI*2); x.fill(); x.globalAlpha=1;
+  // 枝幹：森林系＝粗枝手繪感；簡約白＝細線條；復古港風＝霓虹發光
+  const tpl=S.tpl, widthK = tpl==='minimal'?.3:1;
+  x.strokeStyle=css('--tree'); x.lineCap='round';
+  if(tpl==='retro'){ x.shadowColor=css('--accent2'); x.shadowBlur=8; }
+  TREE.segs.forEach(g=>{ const [a1,b1]=P(g.x1,g.y1), [a2,b2]=P(g.x2,g.y2); x.lineWidth=Math.max(tpl==='minimal'?.8:1.2,g.w*s*widthK); x.beginPath(); x.moveTo(a1,b1); x.lineTo(a2,b2); x.stroke(); });
+  x.shadowBlur=0;
+  if(tpl==='retro'){ x.shadowColor=css('--accent'); x.shadowBlur=10; }
+  // 祝福
+  const col={flower:css('--k-flower'), leaf:css('--k-leaf'), fruit:css('--k-fruit'), heart:css('--k-heart')};
+  const drawMark=(k,px,py,sz,rot)=>{
+    if(tpl==='minimal'){ x.fillStyle=col[k]; x.beginPath(); x.arc(px,py,sz*.3,0,Math.PI*2); x.fill(); }
+    else drawKind(x,k,px,py,sz,rot,col);
+  };
+  const vis=visible(), n=TREE.order.length, base=Math.max(13, 46*s), now=performance.now();
+  let animating=false, featAt=null;
+  vis.forEach((p,i)=>{
+    const si=TREE.order[i%n], sl=TREE.slots[si];
+    const [px,py]=P(sl.x + (i>=n? ((i/n|0)*9) : 0), sl.y);
+    let sc=1; const bt=S.born.get(p.id);
+    if(bt && now-bt<900){ const k=(now-bt)/900; sc=1+2.70158*Math.pow(k-1,3)+1.70158*Math.pow(k-1,2); animating=true; }
+    if(p.id===S.featId){ featAt=[px,py]; return; }
+    drawMark(kindOf(p), px, py, base*sc, TREE.rot[si]);
+  });
+  x.shadowBlur=0;
+  if(featAt){
+    const p=S.posts.find(q=>q.id===S.featId);
+    x.strokeStyle=css(tpl==='minimal'?'--ink':'--accent2'); x.lineWidth=tpl==='minimal'?1:3;
+    x.beginPath();
+    if(tpl==='minimal') x.rect(featAt[0]-base*.7,featAt[1]-base*.7,base*1.4,base*1.4); else x.arc(featAt[0],featAt[1],base*1.25,0,Math.PI*2);
+    x.stroke();
+    if(tpl==='retro'){ x.shadowColor=css('--accent2'); x.shadowBlur=16; }
+    drawMark(kindOf(p), featAt[0], featAt[1], base*1.7, 0);
+    x.shadowBlur=0;
+  }
+  $('#tree-cap').textContent = `${vis.length} 則祝福．${treeStage(vis.length)}`;
+  if(animating){ cancelAnimationFrame(treeRaf); treeRaf=requestAnimationFrame(drawTree); }
+}
+
+/* ========== 合照馬賽克 ========== */
+const imgCache = new Map();
+function getImg(src){
+  if(!src) return null;
+  let im=imgCache.get(src);
+  if(!im){ im=new Image(); im.onload=()=>{ if(S.screen==='mosaic') drawMosaic(); }; im.src=src; imgCache.set(src,im); }
+  return im;
+}
+const N_TILES = CFG.MOSAIC_COLS*CFG.MOSAIC_ROWS;
+const ORDER = (()=>{ const a=[...Array(N_TILES).keys()]; let r=42; for(let i=a.length-1;i>0;i--){ r=(r*9301+49297)%233280; const j=Math.floor(r/233280*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; })();
+let revealAlpha=.12, revealRaf=null;
+function drawMosaic(){
+  const cv=$('#mosaic'), W=cv.parentElement.clientWidth; if(!W) return;
+  const H=Math.round(W*2/3), dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(W*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  cv.style.height=H+'px';
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0);
+  const tw=W/CFG.MOSAIC_COLS, th=H/CFG.MOSAIC_ROWS, vis=visible().filter(p=>wallThumb(p)).map(p=>({thumb:wallThumb(p)}));
+  x.fillStyle=css('--surface'); x.fillRect(0,0,W,H);
+  const filled=Math.min(vis.length,N_TILES), total=S.revealed&&vis.length?N_TILES:filled;
+  for(let k=0;k<total;k++){
+    const cell=ORDER[k], p=vis[k%vis.length], im=getImg(p.thumb);
+    if(im && im.complete && im.naturalWidth) drawCover(x, im, (cell%CFG.MOSAIC_COLS)*tw+1, Math.floor(cell/CFG.MOSAIC_COLS)*th+1, tw-2, th-2);
+  }
+  x.strokeStyle=css('--line'); x.lineWidth=1;
+  for(let k=total;k<N_TILES;k++){ const cell=ORDER[k]; x.strokeRect((cell%CFG.MOSAIC_COLS)*tw+2.5, Math.floor(cell/CFG.MOSAIC_COLS)*th+2.5, tw-5, th-5); }
+  const cp=getImg(S.couplePhoto);
+  if(cp && cp.complete && cp.naturalWidth){ x.globalAlpha=revealAlpha; drawCover(x,cp,0,0,W,H); x.globalAlpha=1; }
+  $('#mosaic-cap').textContent = S.revealed
+    ? `${S.couple.a} & ${S.couple.b}．由 ${vis.length} 張祝福照片拼成`
+    : `已集滿 ${filled} / ${N_TILES} 格．照片越多，合照越清楚`;
+}
+function animateReveal(){
+  cancelAnimationFrame(revealRaf);
+  const from=revealAlpha, to=S.revealed?.6:.12, t0=performance.now(), D=1800;
+  const step=t=>{ const k=Math.min(1,(t-t0)/D), e=1-Math.pow(1-k,3); revealAlpha=from+(to-from)*e; drawMosaic(); if(k<1) revealRaf=requestAnimationFrame(step); };
+  revealRaf=requestAnimationFrame(step);
+}
+function renderThanks(){
+  $('#thanks').innerHTML = `<div class="thanks-card">
+    <img class="thanks-photo" src="${S.couplePhoto}" alt="新人合照">
+    <div><div class="tk-kicker">謝謝你們</div>
+      <div class="tk-names">${esc(S.couple.a)}<span class="amp">&amp;</span>${esc(S.couple.b)}</div>
+      <p>今天一共收到 <b>${visible().length}</b> 則祝福，<br>每一則都會收進我們的婚禮紀念冊。</p>
+      <div class="wall-date">${esc(S.couple.date)}</div></div></div>`;
+}
+
+/* ========== 集氣條 ========== */
+function energyMax(){ return Math.max(...S.energy.ms.map(m=>m.n), 1); }
+function updateEnergyBar(){
+  const el=$('#energy'); el.hidden=!S.energy.on;
+  if(!S.energy.on) return;
+  const n=visible().length, max=energyMax();
+  $('#en-n').textContent=n;
+  $('#en-fill').style.width=Math.min(100,n/max*100)+'%';
+  const track=$('#en-track');
+  track.querySelectorAll('.en-mark').forEach(e=>e.remove());
+  [...S.energy.ms].sort((a,b)=>a.n-b.n).forEach((m,i,arr)=>{
+    const d=document.createElement('div');
+    d.className='en-mark'+(n>=m.n?' on':'')+(i===arr.length-1?' last':'');
+    d.style.left=(m.n/max*100)+'%';
+    d.innerHTML=`<span>${m.n}<span class="full">．${esc(m.t)}</span></span>`;
+    track.appendChild(d);
+  });
+}
+function checkEnergy(){
+  const n=visible().length;
+  S.energy.ms.forEach(m=>{
+    if(n>=m.n && !m.unlocked){ m.unlocked=true; if(S.energy.on){ S.unlockQ.push(m); } }
+    else if(n<m.n && m.unlocked){ m.unlocked=false; }
+  });
+  runUnlockQueue();
+}
+function runUnlockQueue(){
+  // 快閃進行中先不打斷，等結果畫面關掉再播
+  if(S.unlockShowing || !S.unlockQ.length || S.flash || S.stage) return;
+  const m=S.unlockQ.shift(); S.unlockShowing=true;
+  const el=$('#unlock');
+  const colors=[css('--k-flower'),css('--k-fruit'),css('--k-leaf'),css('--k-heart'),css('--flash-hi')];
+  let conf=''; for(let i=0;i<46;i++){ conf+=`<i class="confetti" style="left:${Math.random()*100}%;background:${colors[i%colors.length]};animation-duration:${2.4+Math.random()*2.4}s;animation-delay:${Math.random()*1.2}s;border-radius:${i%3?2:9}px"></i>`; }
+  el.innerHTML = `${conf}<div class="ul-kicker">祝福集氣達成 ${m.n} 則</div><div class="ul-title">解鎖！</div><div class="ul-text">${esc(m.t)}</div>`;
+  el.hidden=false;
+  toast(`集氣解鎖：${m.t}`);
+  setTimeout(()=>{ el.hidden=true; el.innerHTML=''; S.unlockShowing=false; runUnlockQueue(); }, CFG.UNLOCK_SHOW_MS);
+}
+
+/* ========== 限時快閃 ========== */
+function startFlash(task, dur){
+  const now=Date.now();
+  S.flash={id:'f'+(++S.flashSeq), task, dur, start:now, end:now+dur*1000, phase:'live'};
+  S.nextFlashSim=now+1800;
+  $('#fl-grid').innerHTML=''; $('#fl-grid').dataset.ids='';
+  toast('快閃任務開始！');
+  updateFlashUI(); syncGuestBanner(true); updateCtrl();
+}
+function endFlash(){
+  if(!S.flash) return;
+  S.flash.phase='result'; S.flash.end=Math.min(S.flash.end, Date.now()); S.flash.resultUntil=Date.now()+CFG.FLASH_RESULT_MS;
+  updateFlashUI(); syncGuestBanner(true); updateCtrl();
+}
+function flashEntries(){
+  if(!S.flash) return [];
+  return S.posts.filter(p=>p.flashId===S.flash.id && p.status==='shown' && p.ts<=S.flash.end+500).sort((a,b)=>a.ts-b.ts);
+}
+function updateFlashUI(){
+  const ov=$('#flash');
+  if(!S.flash){ ov.hidden=true; return; }
+  ov.hidden=false;
+  const f=S.flash, ents=flashEntries();
+  $('#fl-task').textContent=f.task;
+  if(f.phase==='live'){
+    $('#fl-live').hidden=false; $('#fl-grid').hidden=false; $('#fl-result').hidden=true;
+    $('#fl-sub').textContent = ents.length ? `已有 ${ents.length} 張照片．最快的前三名有獎` : '掃描 QR code 參加．最快的前三名有獎';
+    const grid=$('#fl-grid'), known=new Set((grid.dataset.ids||'').split(',').filter(Boolean));
+    const rankOf=new Map(ents.slice(0,3).map((p,i)=>[p.id,i+1]));
+    ents.forEach(p=>{
+      if(known.has(p.id)) return;
+      known.add(p.id);
+      const fig=document.createElement('figure'); fig.className='fl-item'; fig.dataset.id=p.id;
+      const wt=wallThumb(p);
+      fig.innerHTML=`${rankOf.has(p.id)?`<span class="rank">${rankOf.get(p.id)}</span>`:''}${wt?`<img src="${wt}" alt="">`:`<div class="note" style="aspect-ratio:1;box-shadow:none">${kindSVG(kindOf(p),40)}</div>`}<span>${esc(dispName(p))}</span>`;
+      grid.prepend(fig);
+    });
+    grid.dataset.ids=[...known].join(',');
+    tickFlash();
+  } else {
+    $('#fl-live').hidden=true; $('#fl-grid').hidden=true;
+    const res=$('#fl-result'); res.hidden=false;
+    const top=ents.slice(0,3);
+    $('#fl-count').textContent='0'; $('#fl-count').classList.remove('hurry'); $('#fl-bar').style.width='0';
+    res.innerHTML = `<h2>時間到！</h2><div class="fl-sub">「${esc(f.task)}」共收到 ${ents.length} 張照片</div>` +
+      (top.length ? `<div class="podium">${top.map((p,i)=>`<div class="pod r${i+1}"><div class="pod-rank">第 ${i+1} 名</div>
+        ${wallThumb(p)?`<figure class="polaroid" style="--tilt:${(i-1)*3}deg"><img src="${wallThumb(p)}" alt=""></figure>`:`<div class="note" style="width:100%;max-width:200px;aspect-ratio:1">${kindSVG(kindOf(p),70)}</div>`}
+        <div class="pod-name">${esc(dispName(p))}${p.table&&!p.anon?`．第 ${esc(p.table)} 桌`:''}</div></div>`).join('')}</div>`
+        : `<div class="fl-sub">這次沒有人搶到，下一輪手腳快一點！</div>`);
+  }
+}
+function tickFlash(){
+  if(!flashLive()) return;
+  const left=flashLeft(), f=S.flash;
+  const c=$('#fl-count'); c.textContent=left; c.classList.toggle('hurry', left<=10);
+  $('#fl-bar').style.width=Math.max(0,(f.end-Date.now())/(f.dur*1000)*100)+'%';
+  document.querySelectorAll('.g-fl-left').forEach(e=>e.textContent=left);
+  const cc=$('#cf-count'); if(cc) cc.textContent=left;
+  const cn=$('#cf-n'); if(cn) cn.textContent=flashEntries().length;
+}
+
+/* ========== 賓客手機 ========== */
+function newCard(){ let i; do{ i=Math.floor(Math.random()*CARDS.length); } while(i===G.card && CARDS.length>1); return i; }
+function firstStep(){
+  if(S.game==='tree') return 'kind';
+  if(S.game==='ema') return 'ema-pick';
+  if(S.game==='postcard') return 'pc-pick';
+  G.card=newCard(); G.flipped=false; G.rerolls=CFG.REROLLS; return 'draw';
+}
+function resetCompose(){ G.proc=null; G.text=''; G.err=''; G.confirmDel=false; }
+function nextStepAfterCheckin(){
+  if(G.wantFlash && flashLive()){ G.wantFlash=false; G.mode='flash'; resetCompose(); return 'compose'; }
+  G.mode='normal'; return firstStep();
+}
+function bannerWanted(){ return flashLive() && G.flashDone!==S.flash.id && G.mode!=='flash' && G.step!=='upload'; }
+function syncGuestBanner(force){
+  const want=bannerWanted();
+  if(force || want!==G.bannerOn) renderGuest();
+}
+function composeMode(){ return G.mode==='flash' ? 'flash' : S.game; }
+function textMax(){ return composeMode()==='ema' ? CFG.EMA_TEXT_MAX : CFG.TEXT_MAX; }
+function privSummary(){
+  return [G.priv.anon?'匿名顯示':'顯示名字', G.priv.privatePhoto?'照片只給新人':'照片可上投影', G.priv.publicOk?'可放公開頁':'不放公開頁'].join('．');
+}
+function privacyBlock(hasPhoto){
+  return `<details class="priv" id="g-priv" ${G.privOpen?'open':''}>
+    <summary><span>隱私設定</span><small id="g-priv-sum">${privSummary()}</small></summary>
+    <div class="priv-body">
+      <label><input type="checkbox" id="g-p-anon" ${G.priv.anon?'checked':''}><span>投影上不顯示我的名字，改成「一位賓客」</span></label>
+      <label class="${hasPhoto?'':'off'}"><input type="checkbox" id="g-p-photo" ${G.priv.privatePhoto?'checked':''} ${hasPhoto?'':'disabled'}><span>照片只給新人收藏，不放上投影${hasPhoto?'':'（這個玩法沒有照片）'}</span></label>
+      <label><input type="checkbox" id="g-p-public" ${G.priv.publicOk?'checked':''}><span>同意放進婚禮的公開精選頁（不勾就不會公開）</span></label>
+      <div class="priv-note">不需要登入，也不會蒐集電話或 Email。原檔只有新人和婚禮工作人員看得到，${S.keepDays} 天後自動刪除。送出後，你隨時可以在這支手機上刪除自己的投稿。</div>
+    </div></details>`;
+}
+function renderGuest(){
+  const el=$('#guest'), c=S.couple, gi=GAME_INFO[S.game];
+  G.stageKey = guestStageKey();
+  if(S.stage && G.step!=='upload'){ G.bannerOn=false; el.innerHTML=guestStageHTML(); bindGuestStage(); return; }
+  G.bannerOn = bannerWanted();
+  const banner = G.bannerOn ? `<button type="button" class="g-flash" id="g-flash"><span class="fl-txt">限時快閃！${esc(S.flash.task)}．剩 <b class="g-fl-left">${flashLeft()}</b> 秒</span><span class="go">${G.checked?'參加':'報到參加'}</span></button>` : '';
+  const head = `<div class="g-head"><div class="g-kicker">歡迎來到</div><div class="g-names">${esc(c.a)}<span class="amp">&amp;</span>${esc(c.b)} 的婚禮</div><div class="g-date">${esc(c.date)}</div></div>`;
+  let body='';
+  if(G.step==='checkin'){
+    let opts='<option value="">不確定</option>'; for(let i=1;i<=30;i++) opts+=`<option value="${i}" ${G.table==i?'selected':''}>第 ${i} 桌</option>`;
+    body = `<div class="g-body">
+      <p class="g-lead">先留個名字，祝福會署名在下方。</p>
+      <label class="field"><span>你的名字或暱稱</span><input type="text" id="g-name" maxlength="12" value="${esc(G.name)}" placeholder="例如：林阿姨、大學室友小芸" autocomplete="off"></label>
+      <label class="field"><span>桌號</span><select id="g-table">${opts}</select></label>
+      <label class="field"><span>你是哪一方的親友？（舞台遊戲分隊用）</span><select id="g-side">
+        <option value="">先不選</option><option value="L" ${G.side==='L'?'selected':''}>男方親友</option><option value="R" ${G.side==='R'?'selected':''}>女方親友</option><option value="both" ${G.side==='both'?'selected':''}>兩邊都是</option></select></label>
+      <button type="button" class="btn block" id="g-go">${G.wantFlash&&flashLive()?'報到並參加快閃':gi.go}</button>
+      <p class="trust">不需要登入，也不會蒐集電話或 Email。<br>寫祝福時可以選擇匿名，送出後也能自己刪除。</p>
+    </div>`;
+  } else if(G.step==='draw'){
+    const cd=CARDS[G.card];
+    body = `<div class="g-body">
+      <p class="g-lead">${G.flipped?'這是你的任務':'點一下卡片翻開'}</p>
+      <button type="button" class="tcard ${G.flipped?'flipped':''}" id="g-card" aria-label="翻開任務卡">
+        <span class="tc-inner">
+          <span class="tc-back"><span class="tc-mark">任務卡</span><span class="tc-tapme">點我翻開</span></span>
+          <span class="tc-front"><span class="cat ${CAT_CLS[cd.cat]}">${cd.cat}</span><span class="tc-task">${esc(cd.task)}</span><span class="tc-prompt">寫祝福時：${esc(cd.prompt)}</span></span>
+        </span>
+      </button>
+      ${G.flipped?`<button type="button" class="btn block" id="g-accept">就是這張，去拍照</button>
+      <button type="button" class="btn ghost block" id="g-reroll" ${G.rerolls?'':'disabled'}>換一張（剩 ${G.rerolls} 次）</button>`:''}
+    </div>`;
+  } else if(G.step==='kind'){
+    body = `<div class="g-body">
+      <p class="g-lead">選一種你想送的祝福，它會長在新人的樹上。</p>
+      <div class="kinds">${KINDS.map(k=>`<button type="button" class="kind-btn" data-k="${k.id}">${kindSVG(k.id,46)}<b>${k.name}</b><small>${k.wish}</small></button>`).join('')}</div>
+    </div>`;
+  } else if(G.step==='ema-pick'){
+    body = `<div class="g-body">
+      <p class="g-lead">挑一塊繪馬，寫下你對新人的心願。</p>
+      <div class="kinds" style="grid-template-columns:repeat(3,minmax(0,1fr))">${EMA_MOTIFS.map(m=>`<button type="button" class="kind-btn" data-ema="${m.id}">
+        <div class="ema-board"><span class="ema-hole"></span><span class="ema-motif" style="color:${m.id==='xi'?'var(--ema-string)':'var(--k-heart)'}">${motifSVG(m.id,40)}</span></div>
+        <b>${m.name}</b><small>${m.wish}</small></button>`).join('')}</div>
+    </div>`;
+  } else if(G.step==='pc-pick'){
+    body = `<div class="g-body">
+      <p class="g-lead">挑一張明信片。正面也可以換成你自己拍的照片。</p>
+      <div class="kinds">${PC_DESIGNS.map(d=>`<button type="button" class="kind-btn" data-pc="${d.id}"><img src="${DESIGN_URL[d.id]}" alt=""><b>${d.name}</b></button>`).join('')}</div>
+    </div>`;
+  } else if(G.step==='compose'){
+    const mode=composeMode(), pr=G.proc;
+    let headBox, prompt, photoOptional=false, textOptional=false, sendLabel='送上祝福牆', emptyPick='拍一張符合任務的照片', noPhoto=false;
+    if(mode==='flash'){
+      headBox=`<div class="mini-task"><span class="cat cat-fun">快閃</span><span>${esc(S.flash?S.flash.task:'')}${flashLive()?`<small>剩 <b class="g-fl-left">${flashLeft()}</b> 秒，越快越有機會進前三名</small>`:'<small>快閃已結束，照片仍會收進祝福牆</small>'}</span></div>`;
+      prompt='順便說一句祝福（可省略）'; textOptional=true; sendLabel='搶先送出';
+    } else if(mode==='tree'){
+      const k=KIND_BY[G.kind];
+      headBox=`<div class="mini-task">${kindSVG(k.id,36)}<span>${k.name}<small>${k.wish}</small></span></div>`;
+      prompt='寫一句祝福給新人'; photoOptional=true; sendLabel='讓祝福長上樹'; emptyPick='加一張照片或自拍（可省略）';
+    } else if(mode==='ema'){
+      const m=EMA_BY[G.ema];
+      headBox=`<div class="mini-task"><span style="color:${m.id==='xi'?'var(--ema-string)':'var(--k-heart)'}">${motifSVG(m.id,36)}</span><span>${m.name}繪馬<small>寫好後會掛上新人的祈願架，字會直書</small></span></div>`;
+      prompt='寫下你對新人的心願'; noPhoto=true; sendLabel='掛上祈願架';
+    } else if(mode==='postcard'){
+      const d=PC_BY[G.pc];
+      headBox=`<div class="mini-task"><img src="${DESIGN_URL[d.id]}" alt="" style="width:66px;aspect-ratio:3/2;object-fit:cover;border-radius:4px;flex:none"><span>${d.name}<small>你的話會寫在明信片背面</small></span></div>`;
+      prompt='寫在明信片背面的話'; photoOptional=true; sendLabel='寄出明信片'; emptyPick='想用自己拍的照片當正面嗎？（可省略）';
+    } else {
+      const cd=CARDS[G.card];
+      headBox=`<div class="mini-task"><span class="cat ${CAT_CLS[cd.cat]}">${cd.cat}</span><span>${esc(cd.task)}</span></div>`;
+      prompt=cd.prompt;
+    }
+    G.textOptional=textOptional; G.photoOptional=photoOptional||noPhoto;
+    const max=textMax();
+    if(G.text.length>max) G.text=G.text.slice(0,max);
+    const pickHTML = noPhoto ? '' : `<div class="pick">
+        ${pr ? `<figure class="polaroid preview"><img src="${pr.thumb}" alt="你選的照片"></figure>
+          <div class="size-note">印刷用 ${pr.fullW}×${pr.fullH}．${fmtSize(pr.fullSize)}（可印約 ${printCm(pr.fullW,pr.fullH)}）<br>投影用 ${fmtSize(pr.thumbSize)}．手機原檔 ${fmtSize(pr.origSize)}</div>`
+          : `<div class="pick-empty ${photoOptional?'short':''}">${G.busy?'照片處理中…':emptyPick}</div>`}
+        <div class="pick-btns">
+          <label class="btn ${photoOptional?'ghost':''}">${pr?'重拍':'拍照'}<input class="vh" type="file" accept="image/*" capture="environment" id="g-cam"></label>
+          <label class="btn ghost">從相簿選<input class="vh" type="file" accept="image/*" id="g-lib"></label>
+        </div>
+        ${pr&&photoOptional?'<button type="button" class="link" id="g-nophoto">不放照片了</button>':''}
+        ${G.err?`<p class="err">${esc(G.err)}</p>`:''}
+      </div>`;
+    body = `<div class="g-body">
+      ${headBox}
+      ${pickHTML}
+      <label class="field"><span>${esc(prompt)}</span><textarea id="g-text" maxlength="${max}" rows="3" placeholder="寫給新人的一句話">${esc(G.text)}</textarea><span class="counter" id="g-count">${G.text.length}/${max}</span></label>
+      ${phrasesBlock()}
+      ${privacyBlock(!noPhoto)}
+      <button type="button" class="btn block" id="g-send" ${canSend()?'':'disabled'}>${sendLabel}</button>
+      <button type="button" class="link" id="g-back">${mode==='flash'?'不參加這次快閃':'換一個'}</button>
+    </div>`;
+  } else if(G.step==='upload'){
+    body = `<div class="g-body">
+      <p class="g-lead">正在送出…</p>
+      <div class="up-row"><span>投影用縮圖</span><span id="up1">傳送中</span></div><div class="bar"><i id="bar1"></i></div>
+      <div class="up-row"><span>印刷用原圖</span><span id="up2">等待中</span></div><div class="bar"><i id="bar2"></i></div>
+      <p class="hint">縮圖先到，照片就能先上牆；原圖在背景慢慢傳，訊號不好會自動重試。</p>
+    </div>`;
+  } else if(G.step==='done'){
+    const p=G.last, pending=p.status==='pending';
+    const titles={task:'已送上祝福牆！', tree:'你的祝福長在樹上了！', ema:'繪馬掛上去了！', postcard:'明信片寄出了！'};
+    const title = p.flashId ? '快閃照片送出了！' : pending ? '已送出，等主持人確認' : titles[p.ema?'ema':p.pc?'postcard':p.cardId!=null?'task':'tree'];
+    const hint = p.flashId ? '看看投影，你是第幾名？' : pending ? '確認後就會出現在投影上。' : '抬頭看投影，你的祝福已經上去了。';
+    const chips=[p.anon?'投影顯示「一位賓客」':'投影顯示你的名字'];
+    if(p.thumb) chips.push(p.privatePhoto?'照片只給新人':'照片會上投影');
+    chips.push(p.publicOk?'會放進公開精選頁':'不會放進公開頁');
+    body = `<div class="g-body">
+      <div class="done-title">${title}</div>
+      <p class="hint" style="text-align:center">${hint}</p>
+      <div class="story-wrap">${G.storyURL?`<img class="story ${G.storyFmt==='45'?'r45':''}" src="${G.storyURL}" alt="你的限動分享卡">`:`<div class="story-loading">正在做你的限動分享卡…</div>`}</div>
+      <div class="seg small fmt" id="g-fmt"><button type="button" data-f="916" class="${G.storyFmt==='916'?'on':''}">限動 9:16</button><button type="button" data-f="45" class="${G.storyFmt==='45'?'on':''}">貼文 4:5</button></div>
+      <button type="button" class="btn block" id="g-share" ${G.storyBlob?'':'disabled'}>分享到 IG／FB／LINE</button>
+      <p class="hint" style="text-align:center">${G.shareHint?'這個預覽環境打不開分享選單。請長按上面的圖片存到相簿，再到 IG 或 FB 限動選取。正式網址上會直接跳出分享選單。':'也可以長按圖片，直接存到相簿。'}</p>
+      <div class="priv-chips">${chips.map(t=>`<span class="chip c-muted">${t}</span>`).join('')}</div>
+      <button type="button" class="btn ghost block" id="g-again">${GAME_INFO[S.game].again}</button>
+      <button type="button" class="btn ghost block" id="g-towall">看投影牆</button>
+      ${G.confirmDel?`<div class="del-box"><b>確定刪除這則投稿？</b><span>投影、紀念冊和公開頁都會一併移除，無法復原。</span>
+        <div class="row"><button type="button" class="btn warnb small" id="g-del-yes">確定刪除</button><button type="button" class="btn ghost small" id="g-del-no">取消</button></div></div>`
+        :`<button type="button" class="link danger" id="g-del">刪除這則投稿</button>`}
+    </div>`;
+  } else if(G.step==='deleted'){
+    body = `<div class="g-body">
+      <div class="done-title">已刪除</div>
+      <p class="hint" style="text-align:center">這則投稿已經從投影、紀念冊和公開頁移除。</p>
+      <button type="button" class="btn block" id="g-again">${GAME_INFO[S.game].again}</button>
+    </div>`;
+  }
+  el.innerHTML = banner + head + body;
+  bindGuest();
+}
+function phrasesBlock(){
+  const list=phraseList(), n=3, start=(G.phOff||0)%list.length;
+  const show=[]; for(let i=0;i<Math.min(n,list.length);i++) show.push(list[(start+i)%list.length]);
+  return `<div class="phrases">
+    <div class="ph-head"><span>不知道寫什麼？點一句，再改成你自己的話</span>${list.length>n?'<button type="button" class="link" id="g-ph-more" style="font-size:12px">換一批</button>':''}</div>
+    <div class="ph-list">${show.map(t=>`<button type="button" class="phrase ${G.text===t?'on':''}" data-ph="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+  </div>`;
+}
+function canSend(){ return !G.busy && (G.photoOptional || !!G.proc) && (G.textOptional || G.text.trim().length>=2); }
+function bindGuest(){
+  const on=(id,ev,fn)=>{ const e=$('#'+id); if(e) e.addEventListener(ev,fn); };
+  on('g-flash','click',()=>{
+    if(!flashLive()) return;
+    if(!G.checked){ G.wantFlash=true; G.step='checkin'; renderGuest(); return; }
+    G.mode='flash'; resetCompose(); G.step='compose'; renderGuest();
+  });
+  on('g-go','click',()=>{
+    G.name=$('#g-name').value.trim(); G.table=$('#g-table').value; G.checked=true;
+    G.side=$('#g-side').value; G.tugSide=(G.side==='L'||G.side==='R')?G.side:null;
+    G.step=nextStepAfterCheckin(); renderGuest();
+  });
+  on('g-card','click',()=>{ if(!G.flipped){ G.flipped=true; $('#g-card').classList.add('flipped'); setTimeout(()=>{ if(G.step==='draw') renderGuest(); },700); } });
+  on('g-accept','click',()=>{ resetCompose(); G.step='compose'; renderGuest(); });
+  on('g-reroll','click',()=>{ if(!G.rerolls) return; G.rerolls--; G.card=newCard(); G.flipped=false; renderGuest(); });
+  document.querySelectorAll('.kind-btn[data-k]').forEach(b=>b.addEventListener('click',()=>{ G.kind=b.dataset.k; resetCompose(); G.step='compose'; renderGuest(); }));
+  document.querySelectorAll('.kind-btn[data-ema]').forEach(b=>b.addEventListener('click',()=>{ G.ema=b.dataset.ema; resetCompose(); G.step='compose'; renderGuest(); }));
+  document.querySelectorAll('.kind-btn[data-pc]').forEach(b=>b.addEventListener('click',()=>{ G.pc=b.dataset.pc; resetCompose(); G.step='compose'; renderGuest(); }));
+  const pick=async e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    G.busy=true; G.err=''; renderGuest();
+    try{ G.proc=await processImage(f); }
+    catch(err){ G.err='讀不到這張照片的格式，請改選 JPG 或 PNG 照片。'; }
+    G.busy=false; renderGuest();
+  };
+  on('g-cam','change',pick); on('g-lib','change',pick);
+  on('g-nophoto','click',()=>{ G.proc=null; renderGuest(); });
+  on('g-text','input',e=>{
+    G.text=e.target.value; $('#g-count').textContent=`${G.text.length}/${textMax()}`;
+    $('#g-send').disabled=!canSend();
+  });
+  bindPhrases();
+  const privIn=(id,key)=>on(id,'change',e=>{ G.priv[key]=e.target.checked; const s=$('#g-priv-sum'); if(s) s.textContent=privSummary(); });
+  privIn('g-p-anon','anon'); privIn('g-p-photo','privatePhoto'); privIn('g-p-public','publicOk');
+  on('g-priv','toggle',e=>{ G.privOpen=e.target.open; });
+  on('g-send','click',runUpload);
+  on('g-back','click',()=>{
+    if(G.mode==='flash'){ G.flashDone=S.flash?S.flash.id:null; G.mode='normal'; }
+    resetCompose(); G.step=firstStep(); renderGuest();
+  });
+  on('g-again','click',()=>{ resetCompose(); G.mode='normal'; G.step=firstStep(); renderGuest(); });
+  on('g-towall','click',()=>setView('wall'));
+  on('g-fmt','click',e=>{ const b=e.target.closest('button'); if(!b||b.dataset.f===G.storyFmt) return; G.storyFmt=b.dataset.f; G.storyURL=null; G.storyBlob=null; renderGuest(); genStory(); });
+  on('g-share','click',shareStory);
+  on('g-del','click',()=>{ G.confirmDel=true; renderGuest(); });
+  on('g-del-no','click',()=>{ G.confirmDel=false; renderGuest(); });
+  on('g-del-yes','click',deleteMine);
+}
+function bindPhrases(){
+  document.querySelectorAll('.phrase').forEach(b=>b.addEventListener('click',()=>{
+    const ta=$('#g-text'); if(!ta) return;
+    const t=b.dataset.ph.slice(0,textMax());
+    ta.value=t; G.text=t;
+    $('#g-count').textContent=`${t.length}/${textMax()}`;
+    $('#g-send').disabled=!canSend();
+    document.querySelectorAll('.phrase').forEach(x=>x.classList.toggle('on',x===b));
+    ta.focus(); try{ ta.setSelectionRange(t.length,t.length); }catch(e){}
+  }));
+  const more=$('#g-ph-more');
+  if(more && !more.dataset.bound){ more.dataset.bound='1'; more.addEventListener('click',()=>{ G.phOff=(G.phOff||0)+3; const box=document.querySelector('.phrases'); if(box){ box.outerHTML=phrasesBlock(); bindPhrases(); } }); }
+}
+function buildPostData(){
+  const pr=G.proc, mode=composeMode();
+  const d={name:G.name||'匿名賓客', table:G.table, text:G.text.trim(), sample:false, thumb:null, cardId:null,
+    anon:G.priv.anon, publicOk:G.priv.publicOk, privatePhoto:false};
+  if(mode==='flash' && S.flash){ d.flashId=S.flash.id; d.flashTask=S.flash.task; }
+  else if(mode==='tree'){ d.kind=G.kind; }
+  else if(mode==='ema'){ d.ema=G.ema; }
+  else if(mode==='postcard'){ d.pc=G.pc; }
+  else if(mode==='task'){ d.cardId=G.card; }
+  if(pr){ Object.assign(d,{thumb:pr.thumb, full:pr.full, fullSize:pr.fullSize, fullW:pr.fullW, fullH:pr.fullH, thumbSize:pr.thumbSize, origSize:pr.origSize}); d.privatePhoto=G.priv.privatePhoto; }
+  return d;
+}
+function finishGuest(post){
+  if(post.flashId) G.flashDone=post.flashId;
+  G.last=post; G.mode='normal'; G.step='done'; G.proc=null; G.text='';
+  G.storyURL=null; G.storyBlob=null; G.shareHint=false; G.confirmDel=false; G.privOpen=false;
+  renderGuest(); genStory();
+}
+function runUpload(){
+  if(!canSend()) return;
+  const pr=G.proc, data=buildPostData();
+  if(!pr){ finishGuest(createPost(data)); return; }
+  G.step='upload'; renderGuest();
+  const dur=900+Math.min(4200, pr.fullSize/1048576*1300), t0=performance.now();
+  let post=null;
+  const f=t=>{
+    const e=t-t0, a=Math.min(1,e/500);
+    const b1=$('#bar1'); if(b1) b1.style.width=a*100+'%';
+    if(a>=1){ const u=$('#up1'); if(u) u.textContent='完成'; }
+    if(a>=1 && !post) post=createPost(data);
+    if(e>500){
+      const k=Math.min(1,(e-500)/dur);
+      const b2=$('#bar2'); if(b2) b2.style.width=k*100+'%';
+      const u2=$('#up2'); if(u2) u2.textContent = k>=1?'完成':`${fmtSize(pr.fullSize*k)} / ${fmtSize(pr.fullSize)}`;
+      if(k>=1){ finishGuest(post); return; }
+    }
+    requestAnimationFrame(f);
+  };
+  requestAnimationFrame(f);
+}
+function deleteMine(){
+  const id=G.last && G.last.id; if(!id) return;
+  S.posts=S.posts.filter(p=>p.id!==id); S.queue=S.queue.filter(q=>q!==id);
+  if(S.featId===id) S.featId=null;
+  S.rackKey=''; S.boardKey='';
+  G.step='deleted'; G.confirmDel=false; G.last=null;
+  refresh(); renderGuest(); toast('已刪除你的投稿');
+}
+
+/* ========== 限動分享卡 ========== */
+async function genStory(){
+  const job=++G.storyJob, p=G.last; if(!p) return;
+  let c;
+  try{ c=await makeStory(p, G.storyFmt); }catch(e){ console.error(e); return; }
+  if(job!==G.storyJob) return;
+  G.storyURL=c.toDataURL('image/jpeg',.9);
+  G.storyBlob=await toBlob(c,.92);
+  if(G.step==='done') renderGuest();
+}
+async function shareStory(){
+  const blob=G.storyBlob; if(!blob) return;
+  const file=new File([blob], `${S.couple.a}${S.couple.b}-wedding.jpg`, {type:'image/jpeg'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text:S.hashtag}); return; }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  G.shareHint=true; renderGuest();
+}
+function wrapText(x, text, maxW){
+  const out=[]; let line='';
+  for(const ch of Array.from(text)){
+    if(ch==='\n'){ out.push(line); line=''; continue; }
+    const t=line+ch;
+    if(x.measureText(t).width>maxW && line){ out.push(line); line=ch; } else line=t;
+  }
+  if(line) out.push(line);
+  return out;
+}
+const fontOf=(v,w,s)=>`${w} ${s}px ${css(v)}`;
+async function ensureFonts(){
+  try{ await Promise.all([
+    document.fonts.load(fontOf('--display', css('--dw')||700, 80), '家豪怡君囍'),
+    document.fonts.load(fontOf('--hand', 400, 40), '祝福新婚快樂'),
+    document.fonts.load(fontOf('--body', 400, 30), '看整面祝福牆')
+  ]); }catch(e){}
+}
+function drawMotifC(x,id,cx,cy,s,color){
+  x.save(); x.fillStyle=color;
+  if(id==='xi'){ x.font=`900 ${s}px ${css('--display')}`; x.textAlign='center'; x.textBaseline='middle'; x.fillText('囍',cx,cy+s*.04); }
+  else if(id==='hearts'){
+    x.save(); x.translate(cx-s*.62,cy-s*.42); x.scale(s/40*.85,s/40*.85); x.fill(P_HEART); x.restore();
+    x.globalAlpha=.75; x.save(); x.translate(cx-s*.08,cy-s*.3); x.scale(s/40*.7,s/40*.7); x.fill(P_HEART); x.restore();
+  } else { drawKind(x,'flower',cx,cy,s*1.1,0,{flower:color}); }
+  x.restore();
+}
+function shadowOn(x,b=36,y=16){ x.shadowColor='rgba(0,0,0,.28)'; x.shadowBlur=b; x.shadowOffsetY=y; }
+function shadowOff(x){ x.shadowColor='transparent'; x.shadowBlur=0; x.shadowOffsetY=0; }
+async function makeStory(p, fmt){
+  await ensureFonts();
+  const W=1080, H=fmt==='45'?1350:1920, tall=H>1500;
+  const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
+  const tpl=S.tpl, dw=css('--dw')||'700';
+  const T={bg:css('--bg'), ink:css('--ink'), muted:css('--muted'), acc:css('--accent'), acc2:css('--accent2'), paper:css('--paper'), pink:css('--paper-ink')};
+  // 背景與風格裝飾
+  x.fillStyle=T.bg; x.fillRect(0,0,W,H);
+  if(tpl==='forest'){
+    x.fillStyle='rgba(106,88,66,.08)';
+    for(let yy=0;yy<H;yy+=10) for(let xx=(yy/10%2)*5;xx<W;xx+=10) x.fillRect(xx,yy,2,2);
+    x.strokeStyle=css('--tree'); x.lineWidth=5; x.lineCap='round'; x.beginPath(); x.moveTo(W+10,30); x.quadraticCurveTo(W-170,120,W-300,330); x.stroke();
+    const lc={leaf:css('--k-leaf'), flower:css('--k-flower')};
+    [[W-70,64,-.7],[W-120,118,2.1],[W-190,160,-.6],[W-225,238,2.2],[W-270,282,-.5]].forEach(([a,b,r])=>drawKind(x,'leaf',a,b,58,r,lc));
+    drawKind(x,'flower',W-302,336,50,0,lc);
+  } else if(tpl==='minimal'){
+    x.strokeStyle=T.ink; x.lineWidth=2; x.strokeRect(48,48,W-96,H-96);
+  } else {
+    x.fillStyle='rgba(255,255,255,.03)'; for(let yy=0;yy<H;yy+=6) x.fillRect(0,yy,W,2);
+    x.strokeStyle=T.acc2; x.lineWidth=4; x.strokeRect(34,34,W-68,H-68); x.lineWidth=2; x.strokeRect(48,48,W-96,H-96);
+  }
+  // 標頭
+  const top=tall?190:150;
+  x.textAlign='center'; x.textBaseline='alphabetic';
+  x.fillStyle=T.muted; x.font=fontOf('--body',400,34);
+  x.fillText(p.flashId?'我搶到了婚禮快閃任務':GAME_INFO[p.ema?'ema':p.pc?'postcard':p.cardId!=null?'task':'tree'].kicker, W/2, top);
+  x.font=fontOf('--display',dw,tall?112:96);
+  if(tpl==='retro'){ x.shadowColor=T.acc; x.shadowBlur=30; x.fillStyle='#ffe2dc'; } else x.fillStyle=T.ink;
+  x.fillText(`${S.couple.a} & ${S.couple.b}`, W/2, top+(tall?140:118));
+  shadowOff(x);
+  x.fillStyle=tpl==='retro'?T.acc2:T.muted; x.font=fontOf('--body',400,32);
+  x.fillText(S.couple.date, W/2, top+(tall?200:170));
+  // 主圖
+  const A=tall?520:400, B=tall?1520:1110;
+  await drawStoryArt(x, p, W/2, A, B, T, tpl, tall);
+  // 頁尾
+  x.textAlign='center'; x.textBaseline='alphabetic';
+  x.fillStyle=tpl==='minimal'?T.ink:T.acc2; x.font=fontOf('--display',dw,tall?58:50);
+  if(tpl==='retro'){ x.shadowColor=T.acc2; x.shadowBlur=18; }
+  x.fillText(S.hashtag, W/2, tall?1665:1210); shadowOff(x);
+  x.fillStyle=T.muted; x.font=fontOf('--body',400,30);
+  x.fillText(`看整面祝福牆　${CFG.SHORT_URL}`, W/2, tall?1740:1272);
+  return c;
+}
+async function drawStoryArt(x,p,cx,A,B,T,tpl,tall){
+  const mid=(A+B)/2, avail=B-A, name=p.anon?'':p.name;
+  const mode=p.ema?'ema':p.pc?'postcard':'polaroid';
+  x.save();
+  if(mode==='ema'){
+    const bh=Math.min(avail-60,760), bw=bh*.74;
+    const left=cx-bw/2, right=cx+bw/2, top=mid-bh/2+30, bottom=top+bh;
+    x.strokeStyle=css('--ema-string'); x.fillStyle=css('--ema-string'); x.lineWidth=5;
+    x.beginPath(); x.moveTo(cx-44,top-58); x.lineTo(cx,top+bh*.13); x.lineTo(cx+44,top-58); x.stroke();
+    x.beginPath(); x.arc(cx,top-64,13,0,Math.PI*2); x.fill();
+    shadowOn(x);
+    x.beginPath(); x.moveTo(cx,top); x.lineTo(right,top+bh*.2); x.lineTo(right,bottom); x.lineTo(left,bottom); x.lineTo(left,top+bh*.2); x.closePath();
+    const g=x.createLinearGradient(left,top,right,bottom); g.addColorStop(0,css('--ema-wood1')); g.addColorStop(1,css('--ema-wood2')); x.fillStyle=g; x.fill();
+    shadowOff(x);
+    x.save(); x.clip(); x.strokeStyle='rgba(90,55,25,.08)'; x.lineWidth=3; for(let gx=left;gx<right;gx+=14){ x.beginPath(); x.moveTo(gx,top); x.lineTo(gx+6,bottom); x.stroke(); } x.restore();
+    x.fillStyle='rgba(0,0,0,.4)'; x.beginPath(); x.arc(cx,top+bh*.13,bw*.035,0,Math.PI*2); x.fill();
+    const m=emaOf(p); drawMotifC(x,m,cx,top+bh*.27,bw*.24, m==='xi'?css('--ema-string'):css('--k-heart'));
+    x.fillStyle=css('--ema-ink');
+    const fs=Math.round(bw*.085); x.font=fontOf('--hand',400,fs); x.textAlign='center'; x.textBaseline='middle';
+    const areaTop=top+bh*.40, areaBot=bottom-bh*.12, rowH=fs*1.14, rows=Math.max(1,Math.floor((areaBot-areaTop)/rowH));
+    const colW=fs*1.45, maxCols=Math.max(1,Math.floor((bw*.84)/colW));
+    let chars=Array.from((p.text||'新婚快樂').replace(/\s+/g,''));
+    if(chars.length>rows*maxCols){ chars=chars.slice(0,rows*maxCols-1); chars.push('…'); }
+    const cols=Math.ceil(chars.length/rows), startX=cx+(cols-1)*colW/2;
+    chars.forEach((ch,i)=>{ const col=Math.floor(i/rows), row=i%rows; x.fillText(ch, startX-col*colW, areaTop+row*rowH+rowH/2); });
+    if(name){ x.textAlign='left'; x.textBaseline='alphabetic'; x.font=fontOf('--body',400,Math.round(bw*.05)); x.globalAlpha=.85; x.fillText(name, left+bw*.09, bottom-bw*.06); x.globalAlpha=1; }
+  } else if(mode==='postcard'){
+    const fw=Math.min(800,(avail-60)*(tall?1.1:.95)), fh=fw*2/3;
+    let im=null; try{ im=await loadImgURL(p.thumb||DESIGN_URL[pcOf(p)]); }catch(e){}
+    x.save(); x.translate(cx+50, mid-fh*.42); x.rotate(tpl==='minimal'?0:.1);
+    shadowOn(x); x.fillStyle=T.paper; x.fillRect(-fw/2-14,-fh/2-14,fw+28,fh+28); shadowOff(x);
+    if(im) drawCover(x,im,-fw/2,-fh/2,fw,fh);
+    x.restore();
+    const bw2=fw*1.02, bh2=bw2*2/3;
+    x.save(); x.translate(cx-30, mid+bh2*(tall?.38:.33)); x.rotate(tpl==='minimal'?0:-.06);
+    shadowOn(x); x.fillStyle=T.paper; x.fillRect(-bw2/2,-bh2/2,bw2,bh2); shadowOff(x);
+    if(tpl==='minimal'){ x.strokeStyle=T.ink; x.lineWidth=2; x.strokeRect(-bw2/2,-bh2/2,bw2,bh2); }
+    const L=-bw2/2, Tp=-bh2/2, pad=bw2*.06;
+    x.strokeStyle='rgba(0,0,0,.18)'; x.lineWidth=2; x.beginPath(); x.moveTo(L+bw2*.56,Tp+pad); x.lineTo(L+bw2*.56,Tp+bh2-pad); x.stroke();
+    x.fillStyle=T.pink; x.font=fontOf('--hand',400,Math.round(bw2*.045)); x.textAlign='left'; x.textBaseline='top';
+    wrapText(x,p.text||'新婚快樂！',bw2*.56-pad*1.6).slice(0,6).forEach((l,i)=>x.fillText(l,L+pad,Tp+pad+i*bw2*.064));
+    const sw=bw2*.15, sh=sw*1.22, sx=L+bw2-pad-sw, sy=Tp+pad;
+    x.strokeStyle=css('--stamp'); x.lineWidth=4; x.setLineDash([4,6]); x.strokeRect(sx,sy,sw,sh); x.setLineDash([]);
+    drawMotifC(x,emaOf(p),sx+sw/2,sy+sh/2,sw*.55,css('--stamp'));
+    x.save(); x.translate(sx-sw*.22, sy+sh*.66); x.rotate(-.25); x.strokeStyle=css('--pm'); x.fillStyle=css('--pm'); x.globalAlpha=.8; x.lineWidth=3;
+    x.beginPath(); x.arc(0,0,sw*.6,0,Math.PI*2); x.stroke();
+    x.textAlign='center'; x.textBaseline='middle'; x.font=fontOf('--body',700,Math.round(sw*.16)); x.fillText(S.couple.date,0,-sw*.1);
+    x.font=fontOf('--body',400,Math.round(sw*.15)); x.fillText('喜訊郵局',0,sw*.17); x.restore();
+    x.fillStyle=T.pink; x.textAlign='left'; x.textBaseline='alphabetic'; x.font=fontOf('--body',400,Math.round(bw2*.034));
+    const lx=L+bw2*.6, lw=bw2*.34;
+    [[`To ${S.couple.a} & ${S.couple.b}`, Tp+bh2*.68],[`From ${name||'一位賓客'}`, Tp+bh2*.86]].forEach(([t,y])=>{
+      x.fillText(t,lx,y); x.strokeStyle='rgba(0,0,0,.2)'; x.lineWidth=2; x.beginPath(); x.moveTo(lx,y+12); x.lineTo(lx+lw,y+12); x.stroke(); });
+    x.restore();
+  } else {
+    let im=null; if(p.thumb){ try{ im=await loadImgURL(p.thumb); }catch(e){} }
+    const capH=tall?230:190, ph=Math.min(avail-capH-60,760), pw=ph*.8, fw=pw+56, fh=ph+28+capH;
+    x.save(); x.translate(cx, mid); x.rotate(tpl==='minimal'?0:-.035);
+    shadowOn(x); x.fillStyle=T.paper; x.fillRect(-fw/2,-fh/2,fw,fh); shadowOff(x);
+    if(tpl==='minimal'){ x.strokeStyle=css('--line'); x.lineWidth=2; x.strokeRect(-fw/2,-fh/2,fw,fh); }
+    const ix=-pw/2, iy=-fh/2+28;
+    if(im){ if(tpl==='retro') x.filter='sepia(.25)'; drawCover(x,im,ix,iy,pw,ph); x.filter='none'; }
+    else { x.fillStyle=T.bg; x.fillRect(ix,iy,pw,ph); drawKind(x,kindOf(p),0,iy+ph/2,pw*.45,0,{flower:css('--k-flower'),leaf:css('--k-leaf'),fruit:css('--k-fruit'),heart:css('--k-heart')}); }
+    x.fillStyle=T.pink; x.textAlign='center'; x.textBaseline='top'; x.font=fontOf('--hand',400,42);
+    const lines=wrapText(x,p.text||'',pw).slice(0,2); lines.forEach((l,i)=>x.fillText(l,0,iy+ph+28+i*56));
+    if(name){ x.font=fontOf('--body',400,30); x.globalAlpha=.7; x.fillText('— '+name,0,iy+ph+38+lines.length*56); x.globalAlpha=1; }
+    if(tpl==='forest'){ x.save(); x.translate(0,-fh/2); x.rotate(-.06); x.fillStyle='rgba(160,188,120,.75)'; x.fillRect(-90,-22,180,44); x.restore(); }
+    if(tpl==='retro'){ x.fillStyle='#2b1e16'; x.beginPath(); x.moveTo(ix,iy); x.lineTo(ix+44,iy); x.lineTo(ix,iy+44); x.fill(); x.beginPath(); x.moveTo(ix+pw,iy+ph); x.lineTo(ix+pw-44,iy+ph); x.lineTo(ix+pw,iy+ph-44); x.fill(); }
+    x.restore();
+  }
+  x.restore();
+}
+
+/* ========== 舞台互動：男女方拔河、歡呼分貝計、手機燈海 ========== */
+const LIGHT_EFFECTS=[{id:'solid',name:'單色'},{id:'breathe',name:'呼吸'},{id:'flash',name:'跟拍閃爍'},{id:'wave',name:'波浪'},{id:'rainbow',name:'彩虹'}];
+const LIGHT_COLORS=['#ff5c8a','#ff3b30','#ffb300','#ffffff','#4cc9f0','#8e7dff'];
+const TEAM={L:{name:'男方親友'}, R:{name:'女方親友'}};
+function hexRgb(h){ const n=parseInt(h.slice(1),16); return [n>>16&255,n>>8&255,n&255]; }
+// 燈海的顏色只由「開始後經過的秒數」和「座位在場地中的左右位置」決定，
+// 正式版每支手機用伺服器時間自己計算，就能全場同步。
+function lightColor(st, t, px){
+  if(st.effect==='rainbow') return `hsl(${Math.round((t*70+px*240)%360)} 95% 56%)`;
+  const [r,g,b]=hexRgb(st.color); let k=1;
+  if(st.effect==='breathe') k=.22+.78*(.5+.5*Math.sin(t*2*Math.PI/3));
+  else if(st.effect==='flash'){ const ph=(t*st.bpm/60)%1; k=ph<.35?1:.05; }
+  else if(st.effect==='wave') k=.1+.9*Math.pow(.5+.5*Math.sin(2*Math.PI*(t/2.2-px*1.3)),2);
+  return `rgb(${Math.round(r*k)},${Math.round(g*k)},${Math.round(b*k)})`;
+}
+function guestPx(){ const t=parseInt(G.table,10); if(!t) return .5; return (((t-1)%5)+.5)/5; }
+function confettiHTML(n=46){
+  const colors=[css('--k-flower'),css('--k-fruit'),css('--k-leaf'),css('--k-heart'),css('--flash-hi')];
+  let s=''; for(let i=0;i<n;i++) s+=`<i class="confetti" style="left:${Math.random()*100}%;background:${colors[i%colors.length]};animation-duration:${2.4+Math.random()*2.4}s;animation-delay:${Math.random()*1.2}s;border-radius:${i%3?2:9}px"></i>`;
+  return s;
+}
+
+function startStage(type, opt){
+  if(flashLive()){ toast('快閃任務進行中，請先結束快閃'); return; }
+  if(S.stage) stopStage(true);
+  const now=Date.now();
+  if(type==='tug') S.stage={type, phase:'count', liveAt:now+3000, end:now+3000+opt.dur*1000, dur:opt.dur, L:0, R:0, penalty:opt.penalty, sim:opt.sim, rl:10, rr:10};
+  if(type==='cheer'){ S.stage={type, phase:'live', level:0, heat:0, reward:opt.reward, src:'sim', hold:false}; startMic(S.stage); }
+  if(type==='light') S.stage={type, phase:'live', effect:opt.effect, color:opt.color, bpm:opt.bpm, start:now};
+  G.myTaps=0;
+  buildStageWall(); renderGuest(); updateCtrl(); ensureStageLoop();
+  toast({tug:'男女方拔河開始！',cheer:'歡呼分貝計開始',light:'手機燈海開始'}[type]);
+}
+function stopStage(silent){
+  const st=S.stage; if(!st) return;
+  if(st.stream){ try{ st.stream.getTracks().forEach(t=>t.stop()); }catch(e){} }
+  if(st.ac){ try{ st.ac.close(); }catch(e){} }
+  if(st.wake){ try{ st.wake.release(); }catch(e){} }
+  S.stage=null; S.lastSwitch=Date.now();
+  buildStageWall();
+  if(!silent){ renderGuest(); updateCtrl(); drawFeatured(true); }
+}
+async function startMic(st){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    if(S.stage!==st){ stream.getTracks().forEach(t=>t.stop()); return; }
+    const ac=new (window.AudioContext||window.webkitAudioContext)();
+    const an=ac.createAnalyser(); an.fftSize=1024; ac.createMediaStreamSource(stream).connect(an);
+    Object.assign(st,{src:'mic', stream, ac, analyser:an, buf:new Float32Array(an.fftSize)});
+    toast('已使用這台電腦的麥克風量音量');
+  }catch(e){
+    st.src='sim';
+    toast('這裡沒有麥克風權限，改用模擬模式：按住控制台的「模擬歡呼」');
+  }
+  buildStageWall(); updateCtrl();
+}
+
+function buildStageWall(){
+  const el=$('#stage'), st=S.stage;
+  if(!st){ el.hidden=true; el.innerHTML=''; return; }
+  el.hidden=false; el.className='stage '+st.type;
+  const A=esc(S.couple.a), B=esc(S.couple.b);
+  if(st.type==='tug'){
+    if(st.phase==='result'){
+      const w=st.L>=st.R?'L':'R', lose=w==='L'?'R':'L';
+      el.innerHTML=`${confettiHTML()}<div class="fl-head"><span class="fl-kicker">男女方拔河</span></div>
+        <div class="st-result"><h2 style="color:var(--tug${w})">${TEAM[w].name}獲勝！</h2>
+        <div class="st-sub">男方 ${Math.floor(st.L)} 下　vs　女方 ${Math.floor(st.R)} 下</div>
+        <div class="st-reward">${TEAM[lose].name}：${esc(st.penalty)}</div></div>`;
+    } else {
+      el.innerHTML=`<div class="fl-head"><span class="fl-kicker">男女方拔河</span><span class="fl-count" id="tg-time">${st.dur}</span></div>
+        <div class="tug-teams"><div class="team L"><b>${TEAM.L.name}</b><span>新郎 ${A} 這一邊</span><em id="tg-L">0</em></div>
+          <div class="team R"><b>${TEAM.R.name}</b><span>新娘 ${B} 這一邊</span><em id="tg-R">0</em></div></div>
+        ${st.phase==='count'?`<div class="cd-big" id="tg-cd">3</div>`:
+        `<div class="rope-wrap" id="tg-wrap"><div class="win-line L"></div><div class="win-line R"></div><div class="center-line"></div><div class="rope" id="tg-rope"></div><div class="flag" id="tg-flag"></div></div>`}
+        <div class="st-sub">${st.phase==='count'?'準備好手機，倒數結束就開始狂點！':'狂點手機螢幕，幫你那一邊用力拉！'}</div>`;
+    }
+  } else if(st.type==='cheer'){
+    el.innerHTML=`${st.phase==='done'?confettiHTML():''}<div class="fl-head"><span class="fl-kicker">歡呼分貝計</span><span class="ch-src">${st.src==='mic'?'正在用麥克風量現場音量':'模擬模式'}</span></div>
+      <div class="cheer-body">
+        <div class="thermo"><div class="th-tube"><div class="th-heat" id="ch-heat"></div><div class="th-level" id="ch-level"></div></div><div class="th-bulb"></div></div>
+        <div style="display:flex;flex-direction:column;gap:clamp(8px,1.4vw,18px)">
+          <div class="ch-goal">${st.phase==='done'?'解鎖成功！':'全場一起喊，喊到滿格就解鎖'}</div>
+          <div class="ch-reward">${esc(st.reward)}</div>
+          <div class="ch-pct" id="ch-pct">0%</div>
+        </div>
+      </div>`;
+  } else {
+    const ef=LIGHT_EFFECTS.find(e=>e.id===st.effect);
+    el.innerHTML=`<div class="fl-head"><span class="fl-kicker">手機燈海</span><span class="st-sub" style="text-align:right">效果：${ef?ef.name:''}</span></div>
+      <canvas class="lt-canvas" id="lt-canvas" aria-label="全場手機燈海示意"></canvas>
+      <div class="st-sub">請大家把手機舉高．投影上的每個光點代表一支賓客手機</div>`;
+  }
+}
+
+let stRaf=null, stLast=0;
+function ensureStageLoop(){ if(!stRaf){ stLast=0; stRaf=requestAnimationFrame(stageLoop); } }
+function stageLoop(t){
+  const st=S.stage;
+  if(!st){ stRaf=null; return; }
+  const dt=Math.min(.1, stLast ? (t-stLast)/1000 : 0); stLast=t;
+  const now=Date.now();
+  if(st.type==='tug') tugStep(st,now,dt);
+  else if(st.type==='cheer') cheerStep(st,dt);
+  else drawLight(st,now);
+  guestStageSync();
+  stRaf=requestAnimationFrame(stageLoop);
+}
+function tugStep(st,now,dt){
+  if(st.phase==='count'){
+    const cd=$('#tg-cd'); if(cd) cd.textContent=Math.max(1,Math.ceil((st.liveAt-now)/1000));
+    if(now>=st.liveAt){ st.phase='live'; buildStageWall(); updateCtrl(); }
+    return;
+  }
+  if(st.phase==='live'){
+    if(st.sim){
+      st.rl=Math.max(4,Math.min(16,st.rl+(Math.random()-.5)*dt*18));
+      st.rr=Math.max(4,Math.min(16,st.rr+(Math.random()-.5)*dt*18));
+      st.L+=st.rl*24*dt; st.R+=st.rr*24*dt;
+    }
+    if(now>=st.end){ st.phase='result'; buildStageWall(); updateCtrl(); return; }
+  }
+  if(st.phase!=='live') return;
+  const left=Math.max(0,Math.ceil((st.end-now)/1000));
+  const set=(id,v)=>{ const e=$('#'+id); if(e) e.textContent=v; };
+  set('tg-time',left); set('tg-L',Math.floor(st.L)); set('tg-R',Math.floor(st.R));
+  set('sc-tug-L',Math.floor(st.L)); set('sc-tug-R',Math.floor(st.R)); set('sc-tug-t',left);
+  const wrap=$('#tg-wrap');
+  if(wrap){
+    const diff=(st.L-st.R)/(st.L+st.R+60);
+    const off=-Math.max(-1,Math.min(1,diff*3))*wrap.clientWidth*.34;
+    $('#tg-rope').style.transform=`translate(${off}px,-50%)`;
+    $('#tg-flag').style.transform=`translate(${off}px,-50%)`;
+  }
+}
+function cheerStep(st,dt){
+  let lvl;
+  if(st.src==='mic' && st.analyser){
+    st.analyser.getFloatTimeDomainData(st.buf);
+    let s=0; for(let i=0;i<st.buf.length;i++) s+=st.buf[i]*st.buf[i];
+    const db=20*Math.log10(Math.sqrt(s/st.buf.length)+1e-6);
+    lvl=Math.max(0,Math.min(100,(db+55)/50*100));
+  } else lvl = st.hold ? 70+Math.random()*28 : 8+Math.random()*12;
+  st.level += (lvl-st.level)*Math.min(1,dt*10);
+  if(st.phase==='live'){
+    if(st.level>45) st.heat += (st.level-45)/55*24*dt; else st.heat -= 5*dt;
+    st.heat=Math.max(0,Math.min(100,st.heat));
+    if(st.heat>=100){ st.phase='done'; buildStageWall(); updateCtrl(); toast('歡呼解鎖成功！'); }
+  }
+  const h=$('#ch-heat'); if(h) h.style.height=st.heat+'%';
+  const l=$('#ch-level'); if(l) l.style.bottom=st.level+'%';
+  const p=$('#ch-pct'); if(p) p.textContent=Math.round(st.heat)+'%';
+  const c=$('#sc-ch-pct'); if(c) c.textContent=Math.round(st.heat)+'%';
+}
+function drawLight(st,now){
+  const cv=$('#lt-canvas'); if(!cv || !cv.offsetParent) return;
+  const W=cv.clientWidth, H=cv.clientHeight; if(!W||!H) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0);
+  x.fillStyle='#04060a'; x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(255,255,255,.07)'; rr(x,W*.3,6,W*.4,H*.1,8); x.fill();
+  x.fillStyle='rgba(255,255,255,.45)'; x.font=`500 ${Math.max(12,H*.035)}px ${css('--body')}`; x.textAlign='center'; x.textBaseline='middle'; x.fillText('舞台',W/2,6+H*.05);
+  const t=(now-st.start)/1000, rows=3, cols=5, top=H*.22, rowH=(H-top)/rows, R=Math.min(W/cols,rowH)*.3;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const tx=W*(c+.5)/cols, ty=top+rowH*(r+.5);
+    x.fillStyle='rgba(255,255,255,.05)'; x.beginPath(); x.arc(tx,ty,R*.8,0,Math.PI*2); x.fill();
+    for(let k=0;k<10;k++){
+      const a=k/10*Math.PI*2, sx=tx+Math.cos(a)*R*1.15, sy=ty+Math.sin(a)*R*1.15;
+      const col=lightColor(st,t,sx/W);
+      x.shadowColor=col; x.shadowBlur=R*.5; x.fillStyle=col;
+      x.beginPath(); x.arc(sx,sy,Math.max(2.5,R*.17),0,Math.PI*2); x.fill();
+    }
+  }
+  x.shadowBlur=0;
+}
+
+/* 賓客手機上的舞台畫面 */
+function guestStageKey(){ const st=S.stage; return st ? `${st.type}:${st.phase}:${G.tugSide||''}:${st.effect||''}` : ''; }
+function guestStageHTML(){
+  const st=S.stage;
+  if(st.type==='tug'){
+    if(!G.tugSide) return `<div class="g-stage"><h2>男女方拔河！<br>你要幫哪一邊？</h2>
+      <div class="side-pick"><button type="button" class="btn" data-side="L" style="background:var(--tugL);border-color:var(--tugL);color:#fff">男方親友<br><small>新郎 ${esc(S.couple.a)}</small></button>
+      <button type="button" class="btn" data-side="R" style="background:var(--tugR);border-color:var(--tugR);color:#fff">女方親友<br><small>新娘 ${esc(S.couple.b)}</small></button></div></div>`;
+    const me=TEAM[G.tugSide];
+    if(st.phase==='count') return `<div class="g-stage"><h2>你是${me.name}</h2><div class="big" id="gt-cd" style="color:var(--tug${G.tugSide})">3</div><p class="hint">倒數結束就開始狂點按鈕</p></div>`;
+    if(st.phase==='result'){
+      const w=st.L>=st.R?'L':'R';
+      return `<div class="g-stage"><h2>${w===G.tugSide?'你們這邊贏了！':'這次輸了一點點'}</h2>
+        <div class="vs"><span>男方 <b>${Math.floor(st.L)}</b></span><span>女方 <b>${Math.floor(st.R)}</b></span></div>
+        <p class="hint">你一共點了 ${G.myTaps||0} 下${w!==G.tugSide?`，準備派代表上台：${esc(st.penalty)}`:''}</p></div>`;
+    }
+    return `<div class="g-stage"><h2 style="color:var(--tug${G.tugSide})">幫${me.name}用力拉！</h2>
+      <button type="button" class="tap-btn" id="gt-tap" style="background:var(--tug${G.tugSide})">拉！</button>
+      <p>我點了 <b id="gt-mine">${G.myTaps||0}</b> 下．剩 <b id="gt-time">${st.dur}</b> 秒</p>
+      <div class="vs"><span>男方 <b id="gt-L">0</b></span><span>女方 <b id="gt-R">0</b></span></div></div>`;
+  }
+  if(st.type==='cheer'){
+    return `<div class="g-stage"><h2>${st.phase==='done'?'解鎖成功！':'大聲歡呼！'}</h2>
+      <p class="hint">${st.phase==='done'?'看舞台！':'不用按手機，全場一起喊，喊到投影的溫度計滿格'}</p>
+      <div class="ch-reward" style="font-size:24px">${esc(st.reward)}</div>
+      <div class="mini-meter"><i id="gc-bar"></i></div></div>`;
+  }
+  const ef=LIGHT_EFFECTS.find(e=>e.id===st.effect);
+  return `<div class="g-light" id="g-light"><div class="gl-big">把手機舉高</div><div>全場手機正在同步變色．${ef?ef.name:''}</div>
+    <button type="button" class="btn small ghost" id="g-light-fs" style="color:#fff;border-color:#fff">全螢幕</button></div>`;
+}
+function bindGuestStage(){
+  document.querySelectorAll('[data-side]').forEach(b=>b.addEventListener('click',()=>{ G.tugSide=b.dataset.side; renderGuest(); }));
+  const tap=$('#gt-tap');
+  if(tap) tap.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    const st=S.stage; if(!st||st.type!=='tug'||st.phase!=='live') return;
+    st[G.tugSide]+=1; G.myTaps=(G.myTaps||0)+1;
+    const m=$('#gt-mine'); if(m) m.textContent=G.myTaps;
+    try{ navigator.vibrate && navigator.vibrate(8); }catch(_){}
+  });
+  const fs=$('#g-light-fs');
+  if(fs) fs.addEventListener('click',()=>{ const ph=document.querySelector('.phone'); try{ const r=ph.requestFullscreen&&ph.requestFullscreen(); if(r&&r.catch) r.catch(()=>toast('這個環境不支援全螢幕')); }catch(_){ toast('這個環境不支援全螢幕'); } });
+  if(S.stage && S.stage.type==='light' && navigator.wakeLock){ navigator.wakeLock.request('screen').then(w=>{ if(S.stage) S.stage.wake=w; else w.release(); }).catch(()=>{}); }
+}
+function guestStageSync(){
+  if(G.stageKey!==guestStageKey()){ renderGuest(); return; }
+  const st=S.stage; if(!st) return;
+  if(st.type==='tug'){
+    const now=Date.now(), set=(id,v)=>{ const e=$('#'+id); if(e) e.textContent=v; };
+    if(st.phase==='count') set('gt-cd',Math.max(1,Math.ceil((st.liveAt-now)/1000)));
+    if(st.phase==='live'){ set('gt-L',Math.floor(st.L)); set('gt-R',Math.floor(st.R)); set('gt-time',Math.max(0,Math.ceil((st.end-now)/1000))); }
+  } else if(st.type==='cheer'){
+    const b=$('#gc-bar'); if(b) b.style.width=st.heat+'%';
+  } else {
+    const el=$('#g-light'); if(el) el.style.background=lightColor(st,(Date.now()-st.start)/1000,guestPx());
+  }
+}
+
+/* ========== 控制台 ========== */
+function buildCtrl(){
+  $('#ctrl').innerHTML = `<div class="ctrl-grid">
+    <section class="panel span2"><div class="stats" id="c-stats"></div></section>
+
+    <section class="panel span2 host">
+      <h3>主持人快閃任務</h3>
+      <div id="cf-setup">
+        <div class="host-setup">
+          <label class="field"><span>任務題目</span><select id="cf-preset">${FLASH_PRESETS.map(t=>`<option>${esc(t)}</option>`).join('')}</select></label>
+          <label class="field"><span>或自己輸入</span><input type="text" id="cf-custom" maxlength="30" placeholder="例如：找到新娘的國小同學合照"></label>
+          <label class="field"><span>限時</span><select id="cf-dur"><option value="45">45 秒</option><option value="60" selected>60 秒</option><option value="90">90 秒</option><option value="120">120 秒</option></select></label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="btn big" id="cf-start">發動快閃任務</button>
+          <label class="switch"><input type="checkbox" id="cf-sim" checked><span>展示用：自動模擬賓客參加</span></label>
+        </div>
+        <p class="hint" style="margin-top:8px">發動後投影牆會整面切成倒數畫面，所有賓客手機上方也會跳出參加按鈕。建議主持人同時喊一句「快閃任務開始！」。</p>
+      </div>
+      <div id="cf-live" hidden>
+        <div class="host-live">
+          <div><div class="cf-count" id="cf-count">60</div><div class="hint">秒</div></div>
+          <div class="cf-task" id="cf-task"></div>
+          <div><div class="cf-count" id="cf-n" style="color:var(--ink)">0</div><div class="hint">張照片</div></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="btn warnb" id="cf-end">提前結束</button>
+          <button type="button" class="btn ghost small" id="cf-sim1">模擬一位參加</button>
+        </div>
+      </div>
+      <div id="cf-result" hidden>
+        <p class="hint" id="cf-result-text"></p>
+        <div class="row"><button type="button" class="btn ghost small" id="cf-close">結束結果畫面，回到祝福牆</button></div>
+      </div>
+    </section>
+
+    <section class="panel span2 host">
+      <h3>舞台互動</h3>
+      <p class="hint">一次進行一個。發動後投影整面切換，所有賓客手機也會同步切到對應畫面；結束後回到原本的玩法。</p>
+      <div class="stage-grid">
+        <div class="st-card" id="sc-tug">
+          <h4>男女方拔河</h4>
+          <div id="sc-tug-setup">
+            <label class="field"><span>時間</span><select id="sc-tug-dur"><option value="20">20 秒</option><option value="30" selected>30 秒</option><option value="45">45 秒</option></select></label>
+            <label class="field"><span>輸的一方要做什麼</span><input type="text" id="sc-tug-pen" maxlength="24" value="派代表上台跳一段舞"></label>
+            <label class="switch"><input type="checkbox" id="sc-tug-sim" checked><span>展示用：模擬全場點擊</span></label>
+            <button type="button" class="btn" id="sc-tug-go">開始拔河</button>
+          </div>
+          <div id="sc-tug-live" hidden>
+            <div class="trio"><div><div class="big-n" id="sc-tug-L" style="color:var(--tugL)">0</div><div class="hint">男方</div></div><div><div class="big-n" id="sc-tug-t">0</div><div class="hint" id="sc-tug-phase">秒</div></div><div><div class="big-n" id="sc-tug-R" style="color:var(--tugR)">0</div><div class="hint">女方</div></div></div>
+            <button type="button" class="btn warnb small" id="sc-tug-end">結束，回到祝福牆</button>
+          </div>
+        </div>
+        <div class="st-card" id="sc-ch">
+          <h4>歡呼分貝計</h4>
+          <div id="sc-ch-setup">
+            <label class="field"><span>喊到滿格解鎖什麼</span><input type="text" id="sc-ch-rw" maxlength="24" value="新人當場親一個！"></label>
+            <p class="hint">會使用這台電腦的麥克風量現場音量，賓客手機不需要操作。</p>
+            <button type="button" class="btn" id="sc-ch-go">開始量測</button>
+          </div>
+          <div id="sc-ch-live" hidden>
+            <div class="big-n" id="sc-ch-pct">0%</div>
+            <div class="hint" id="sc-ch-src"></div>
+            <button type="button" class="btn ghost hold-btn" id="sc-ch-hold">按住模擬歡呼</button>
+            <button type="button" class="btn warnb small" id="sc-ch-end">結束，回到祝福牆</button>
+          </div>
+        </div>
+        <div class="st-card" id="sc-lt">
+          <h4>手機燈海</h4>
+          <div>
+            <div class="chips" id="sc-lt-fx">${LIGHT_EFFECTS.map((e,i)=>`<button type="button" data-fx="${e.id}" class="${i===3?'on':''}">${e.name}</button>`).join('')}</div>
+            <div class="swatches" id="sc-lt-col">${LIGHT_COLORS.map((c,i)=>`<button type="button" class="sw ${i===0?'on':''}" data-col="${c}" style="background:${c}" aria-label="顏色 ${c}"></button>`).join('')}</div>
+            <label class="field" id="sc-lt-bpm-w"><span>閃爍節拍（BPM）</span><select id="sc-lt-bpm"><option value="90">90</option><option value="120" selected>120</option><option value="140">140</option></select></label>
+            <p class="hint">燈海進行中也能直接換效果和顏色，全場會立刻跟著變。</p>
+            <button type="button" class="btn" id="sc-lt-go">開始燈海</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>投影畫面</h3>
+      <div class="seg small" id="c-screen">
+        <button type="button" data-screen="wall" id="c-screen-wall">祝福牆</button>
+        <button type="button" data-screen="mosaic">合照馬賽克</button>
+        <button type="button" data-screen="thanks">感謝畫面</button>
+      </div>
+      <div class="row" id="c-wallctl">
+        <button type="button" class="btn small" id="c-pause"></button>
+        <button type="button" class="btn ghost small" id="c-next">下一則</button>
+        <label class="inline">每則停留
+          <select id="c-interval"><option value="5">5</option><option value="7" selected>7</option><option value="10">10</option><option value="15">15</option></select> 秒</label>
+      </div>
+      <div class="row" id="c-mosaicctl"><button type="button" class="btn small" id="c-reveal"></button><span class="hint">只用有照片的祝福；照片不足時，正式版會重複使用照片補滿格子。</span></div>
+      <p class="hint" id="c-thanksctl">送客時切到這頁，顯示總祝福數和新人合照。</p>
+    </section>
+
+    <section class="panel">
+      <h3>祝福集氣條</h3>
+      <label class="switch"><input type="checkbox" id="ce-on" checked><span>在投影牆顯示集氣條</span></label>
+      <div id="ce-rows" style="display:grid;gap:8px"></div>
+      <p class="hint">每一則上牆的祝福算 1 點。達到門檻時，投影會整面跳出解鎖畫面，主持人接著帶活動。</p>
+    </section>
+
+    <section class="panel span2">
+      <div class="list-head">
+        <h3>投稿清單</h3>
+        <div class="chips" id="c-filter">
+          <button type="button" data-f="all">全部</button><button type="button" data-f="shown">顯示中</button>
+          <button type="button" data-f="pending">待審核</button><button type="button" data-f="hidden">已隱藏</button>
+        </div>
+        <button type="button" class="btn small" id="c-approve-all">全部核准</button>
+      </div>
+      <div class="post-list" id="c-list"></div>
+    </section>
+
+    <section class="panel">
+      <h3>審核方式</h3>
+      <div class="radio-cards">
+        <label class="rc"><input type="radio" name="review" id="c-rv-live" value="live"><span><b>即時播放</b><small>送出就上牆，看到不妥再一鍵隱藏。適合有專人顧控制台。</small></span></label>
+        <label class="rc"><input type="radio" name="review" id="c-rv-review" value="review"><span><b>先審後播</b><small>每則要按「核准」才會上牆。最保險，牆上會慢一點。</small></span></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>隱私與分享</h3>
+      <div class="form-grid">
+        <label class="field"><span>原檔保存期限</span><select id="cp-days"><option value="30">30 天</option><option value="90" selected>90 天</option><option value="180">180 天</option></select></label>
+        <label class="field"><span>限動卡上的 hashtag</span><input type="text" id="cp-tag" maxlength="24"></label>
+      </div>
+      <div class="ex-grid" id="cp-stats"></div>
+      <p class="hint">賓客端會看到的承諾：不需登入、不蒐集電話與 Email、可以匿名、照片可選只給新人、送出後能自己刪除、原檔到期自動刪除。公開精選頁只會放賓客勾選「同意公開」的投稿。</p>
+    </section>
+
+    <section class="panel">
+      <h3>展示工具</h3>
+      <p class="hint">跟客戶說明時，用這裡模擬賓客陸續送出，再切到投影牆看效果。</p>
+      <div class="row">
+        <button type="button" class="btn small" id="c-sim">模擬一位賓客送出</button>
+        <label class="switch"><input type="checkbox" id="c-auto"><span>每 9 秒自動送出</span></label>
+      </div>
+      <p class="hint">展示版資料只存在這個頁面，重新整理就會回到範例內容。</p>
+    </section>
+
+    <section class="panel">
+      <h3>新人資料</h3>
+      <div class="form-grid">
+        <label class="field"><span>新郎</span><input type="text" id="c-a" maxlength="8"></label>
+        <label class="field"><span>新娘</span><input type="text" id="c-b" maxlength="8"></label>
+        <label class="field full"><span>婚禮日期（顯示文字）</span><input type="text" id="c-date" maxlength="20"></label>
+        <div class="couple-prev full"><img id="c-cp" alt="目前的新人合照">
+          <label class="btn ghost small">換新人合照<input class="vh" type="file" accept="image/*" id="c-cpfile"></label></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>電子紀念冊</h3>
+      <div id="c-export"></div>
+      <label class="switch"><input type="checkbox" id="c-inc-hidden"><span>包含已隱藏的投稿（有些只是醜照，新人可能想留）</span></label>
+      <p class="hint">正式版提供原圖 ZIP 打包下載與 PDF 紀念冊；展示版先計算內容和大小。待審核的投稿不會收進紀念冊。</p>
+    </section>
+  </div>`;
+
+  // 快閃
+  $('#cf-start').onclick=()=>{
+    const task=($('#cf-custom').value.trim()||$('#cf-preset').value);
+    S.flashSim=$('#cf-sim').checked;
+    startFlash(task, +$('#cf-dur').value);
+  };
+  $('#cf-sim').onchange=e=>{ S.flashSim=e.target.checked; };
+  $('#cf-end').onclick=()=>{ endFlash(); toast('快閃結束，投影正在公布結果'); };
+  $('#cf-sim1').onclick=()=>{ if(flashLive()) simulate(); };
+  $('#cf-close').onclick=closeFlash;
+
+  // 集氣
+  $('#ce-on').onchange=e=>{ S.energy.on=e.target.checked; updateWall(); };
+  $('#ce-rows').innerHTML = S.energy.ms.map((m,i)=>`<div class="ms-row">
+      <input type="number" id="ce-n${i}" min="1" max="999" value="${m.n}" aria-label="第 ${i+1} 個門檻">
+      <input type="text" id="ce-t${i}" maxlength="20" value="${esc(m.t)}" aria-label="第 ${i+1} 個解鎖內容">
+      <div class="ms-st"><span class="chip" id="ce-s${i}"></span><button type="button" class="btn ghost small" id="ce-r${i}">重播</button></div></div>`).join('');
+  S.energy.ms.forEach((m,i)=>{
+    $('#ce-n'+i).addEventListener('change',e=>{ m.n=Math.max(1,parseInt(e.target.value,10)||1); e.target.value=m.n; checkEnergy(); updateWall(); updateCtrl(); });
+    $('#ce-t'+i).addEventListener('input',e=>{ m.t=e.target.value||'神祕福利'; updateEnergyBar(); });
+    $('#ce-r'+i).addEventListener('click',()=>{ if(!m.unlocked) return; S.unlockQ.push(m); runUnlockQueue(); if(S.view!=='wall') toast('解鎖畫面正在投影上播放'); });
+  });
+
+  $('#c-screen').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    S.screen=b.dataset.screen; S.lastSwitch=Date.now(); refresh();
+    if(S.screen==='wall'){ drawFeatured(true); }
+    toast(`投影已切換到「${b.textContent}」`);
+  });
+  $('#c-pause').onclick=()=>{ S.paused=!S.paused; S.lastSwitch=Date.now(); refresh(); };
+  $('#c-next').onclick=()=>{ advance(); toast('已切到下一則'); };
+  $('#c-interval').onchange=e=>{ S.interval=+e.target.value; };
+  $('#c-reveal').onclick=()=>{ S.revealed=!S.revealed; if(S.screen!=='mosaic'){ S.screen='mosaic'; } refresh(); animateReveal(); };
+  $('#c-rv-live').onchange=()=>{ S.review=false; refresh(); };
+  $('#c-rv-review').onchange=()=>{ S.review=true; refresh(); };
+  $('#c-filter').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; S.filter=b.dataset.f; updateCtrl(); });
+  $('#c-approve-all').onclick=()=>{ S.posts.filter(p=>p.status==='pending').forEach(p=>{ p.status='shown'; queueNow(p.id); }); refresh(); toast('已全部核准'); };
+  $('#c-list').addEventListener('click',e=>{
+    const b=e.target.closest('[data-act]'); if(!b) return;
+    const id=b.dataset.id, act=b.dataset.act, p=S.posts.find(q=>q.id===id); if(!p) return;
+    if(act==='hide'){ setStatus(id,'hidden'); toast('已從牆上隱藏'); }
+    else if(act==='show'||act==='approve'){ setStatus(id,'shown'); toast(act==='approve'?'已核准上牆':'已恢復顯示'); }
+    else if(act==='pin'){ p.pinned=!p.pinned; refresh(); if(S.featId===id) drawFeatured(true); toast(p.pinned?'已置頂，輪播會多出現一次':'已取消置頂'); }
+    else if(act==='play'){ S.queue.unshift(id); if(S.screen!=='wall') S.screen='wall'; advance(); refresh(); toast('正在投影這一則'); }
+    else if(act==='view'){ openLightbox(p); }
+  });
+  $('#c-sim').onclick=simulate;
+  $('#c-auto').onchange=e=>{ S.auto=e.target.checked; S.lastAuto=Date.now(); };
+  const coupleIn=()=>{ S.couple.a=$('#c-a').value||'新郎'; S.couple.b=$('#c-b').value||'新娘'; S.couple.date=$('#c-date').value; updateWall(); if(S.screen==='thanks') renderThanks(); };
+  ['c-a','c-b','c-date'].forEach(id=>$('#'+id).addEventListener('input',coupleIn));
+  $('#c-a').value=S.couple.a; $('#c-b').value=S.couple.b; $('#c-date').value=S.couple.date;
+  $('#c-cpfile').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    try{ const r=await resizeTo(await decodeFile(f),1600,.88); S.couplePhoto=await blobToDataURL(r.blob); refresh(); toast('新人合照已更新'); }
+    catch(err){ toast('讀不到這張照片，請改用 JPG 或 PNG'); }
+  };
+  $('#c-inc-hidden').onchange=e=>{ S.includeHidden=e.target.checked; updateCtrl(); };
+  // 舞台互動
+  $('#sc-tug-go').onclick=()=>startStage('tug',{dur:+$('#sc-tug-dur').value, penalty:$('#sc-tug-pen').value.trim()||'派代表上台表演', sim:$('#sc-tug-sim').checked});
+  $('#sc-tug-end').onclick=()=>stopStage();
+  $('#sc-ch-go').onclick=()=>startStage('cheer',{reward:$('#sc-ch-rw').value.trim()||'新人當場親一個！'});
+  $('#sc-ch-end').onclick=()=>stopStage();
+  const hold=$('#sc-ch-hold'), setHold=v=>e=>{ e.preventDefault(); if(S.stage&&S.stage.type==='cheer') S.stage.hold=v; };
+  hold.addEventListener('contextmenu',e=>e.preventDefault());
+  hold.addEventListener('pointerdown',setHold(true)); ['pointerup','pointerleave','pointercancel'].forEach(ev=>hold.addEventListener(ev,setHold(false)));
+  const lt=()=>({effect:$('#sc-lt-fx .on').dataset.fx, color:$('#sc-lt-col .on').dataset.col, bpm:+$('#sc-lt-bpm').value});
+  const ltLive=()=>{ if(S.stage&&S.stage.type==='light'){ Object.assign(S.stage, lt()); buildStageWall(); } updateCtrl(); };
+  $('#sc-lt-fx').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...$('#sc-lt-fx').children].forEach(x=>x.classList.toggle('on',x===b)); ltLive(); });
+  $('#sc-lt-col').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...$('#sc-lt-col').children].forEach(x=>x.classList.toggle('on',x===b)); ltLive(); });
+  $('#sc-lt-bpm').onchange=ltLive;
+  $('#sc-lt-go').onclick=()=>{ if(S.stage&&S.stage.type==='light') stopStage(); else startStage('light',lt()); };
+  $('#cp-days').onchange=e=>{ S.keepDays=+e.target.value; if(S.view==='guest') renderGuest(); };
+  $('#cp-tag').value=S.hashtag;
+  $('#cp-tag').addEventListener('input',e=>{ let v=e.target.value.trim(); if(v && !v.startsWith('#')) v='#'+v; S.hashtag=v||'#新婚快樂'; });
+}
+function closeFlash(){ S.flash=null; S.lastSwitch=Date.now(); updateFlashUI(); syncGuestBanner(true); updateCtrl(); drawFeatured(true); }
+function updateCtrl(){
+  if(!$('#c-stats')) return;
+  const all=S.posts, shown=all.filter(p=>p.status==='shown').length, pend=all.filter(p=>p.status==='pending').length, hid=all.filter(p=>p.status==='hidden').length;
+  $('#c-stats').innerHTML = `
+    <div class="stat"><div class="n">${all.length}</div><div class="l">總投稿</div></div>
+    <div class="stat"><div class="n">${shown}</div><div class="l">牆上顯示中</div></div>
+    <div class="stat ${pend?'warn':''}"><div class="n">${pend}</div><div class="l">待審核</div></div>
+    <div class="stat hid"><div class="n">${hid}</div><div class="l">已隱藏</div></div>`;
+  // 快閃
+  const ph = S.flash ? S.flash.phase : null;
+  $('#cf-setup').hidden = !!ph; $('#cf-live').hidden = ph!=='live'; $('#cf-result').hidden = ph!=='result';
+  if(ph==='live'){ $('#cf-task').textContent=S.flash.task; tickFlash(); }
+  if(ph==='result'){ const e=flashEntries(); $('#cf-result-text').textContent=`「${S.flash.task}」已結束，共 ${e.length} 張。${e.length?'前三名：'+e.slice(0,3).map(p=>p.name).join('、'):''}　結果畫面會自動關閉。`; }
+  // 舞台互動
+  const st=S.stage, typ=st?st.type:null;
+  $('#sc-tug').classList.toggle('on',typ==='tug'); $('#sc-ch').classList.toggle('on',typ==='cheer'); $('#sc-lt').classList.toggle('on',typ==='light');
+  $('#sc-tug-setup').hidden=typ==='tug'; $('#sc-tug-live').hidden=typ!=='tug';
+  $('#sc-ch-setup').hidden=typ==='cheer'; $('#sc-ch-live').hidden=typ!=='cheer';
+  $('#sc-tug-go').disabled=!!ph; $('#sc-ch-go').disabled=!!ph; $('#sc-lt-go').disabled=!!ph;
+  $('#sc-lt-go').textContent = typ==='light' ? '停止燈海，回到祝福牆' : '開始燈海';
+  $('#sc-lt-go').className = typ==='light' ? 'btn warnb' : 'btn';
+  $('#sc-lt-bpm-w').hidden = $('#sc-lt-fx .on').dataset.fx!=='flash';
+  if(typ==='tug'){ $('#sc-tug-phase').textContent = st.phase==='count'?'倒數中':st.phase==='result'?'已結束':'秒';
+    if(st.phase==='result'){ $('#sc-tug-t').textContent=st.L>=st.R?'男方勝':'女方勝'; $('#sc-tug-L').textContent=Math.floor(st.L); $('#sc-tug-R').textContent=Math.floor(st.R); } }
+  if(typ==='cheer'){ $('#sc-ch-src').textContent = st.phase==='done' ? '已解鎖！投影正在慶祝' : st.src==='mic' ? '正在用麥克風量測' : '模擬模式：按住下方按鈕代表全場在歡呼'; $('#sc-ch-hold').hidden = st.src==='mic' || st.phase==='done'; }
+  $('#cf-start').disabled=!!S.stage;
+  // 集氣
+  $('#ce-on').checked=S.energy.on;
+  S.energy.ms.forEach((m,i)=>{ const c=$('#ce-s'+i); c.textContent=m.unlocked?'已解鎖':'未達成'; c.className='chip '+(m.unlocked?'c-ok':'c-muted'); $('#ce-r'+i).disabled=!m.unlocked; });
+  // 投影
+  $('#c-screen-wall').textContent = GAME_INFO[S.game].name;
+  [...$('#c-screen').children].forEach(b=>b.classList.toggle('on', b.dataset.screen===S.screen));
+  $('#c-wallctl').hidden = S.screen!=='wall';
+  $('#c-mosaicctl').hidden = S.screen!=='mosaic';
+  $('#c-thanksctl').hidden = S.screen!=='thanks';
+  $('#c-pause').textContent = S.paused?'繼續輪播':'暫停輪播';
+  $('#c-reveal').textContent = S.revealed?'收起合照':'揭曉新人合照';
+  $('#c-rv-live').checked = !S.review; $('#c-rv-review').checked = S.review;
+  [...$('#c-filter').children].forEach(b=>b.classList.toggle('on', b.dataset.f===S.filter));
+  $('#c-approve-all').hidden = !pend;
+  $('#c-auto').checked = S.auto;
+  $('#c-cp').src = S.couplePhoto;
+
+  const list = all.filter(p=>S.filter==='all'||p.status===S.filter).sort((a,b)=>b.ts-a.ts);
+  const stChip = {shown:'<span class="chip c-ok">顯示中</span>', pending:'<span class="chip c-warn">待審核</span>', hidden:'<span class="chip c-danger">已隱藏</span>'};
+  $('#c-list').innerHTML = list.length ? list.map(p=>{
+    let acts='';
+    if(p.status==='pending') acts=`<button type="button" class="btn small" data-act="approve" data-id="${p.id}">核准</button><button type="button" class="btn warnb small" data-act="hide" data-id="${p.id}">隱藏</button>`;
+    else if(p.status==='shown') acts=`<button type="button" class="btn warnb small" data-act="hide" data-id="${p.id}">隱藏</button><button type="button" class="btn ghost small" data-act="pin" data-id="${p.id}">${p.pinned?'取消置頂':'置頂'}</button><button type="button" class="btn ghost small" data-act="play" data-id="${p.id}">立即投影</button>`;
+    else acts=`<button type="button" class="btn ghost small" data-act="show" data-id="${p.id}">恢復顯示</button>`;
+    const thumb = p.thumb
+      ? `<button type="button" class="pr-thumb" data-act="view" data-id="${p.id}" aria-label="查看 ${esc(p.name)} 的原圖" style="background-image:url('${p.thumb}')"></button>`
+      : `<div class="pr-thumb text" title="文字祝福">${kindSVG(kindOf(p),34)}</div>`;
+    return `<div class="post-row st-${p.status}">${thumb}
+      <div><div class="pr-meta"><b>${esc(p.name)}</b>${p.table?`<span>第 ${esc(p.table)} 桌</span>`:''}<span>${hhmm(p.ts)}</span>${stChip[p.status]}${p.anon?'<span class="chip c-muted">匿名顯示</span>':''}${p.privatePhoto?'<span class="chip c-muted">照片只給新人</span>':''}${p.publicOk?'<span class="chip c-ok">同意公開</span>':''}${p.flashId?'<span class="chip c-acc">快閃</span>':''}${p.pinned?'<span class="chip c-acc">置頂</span>':''}${p.id===S.featId&&S.screen==='wall'?'<span class="chip c-acc">投影中</span>':''}${p.sample?'<span class="chip c-muted">範例</span>':''}</div>
+        <div class="pr-text">${esc(p.text||'（只有照片）')}</div><div class="pr-task">${esc(chipText(p))}</div></div>
+      <div class="pr-acts">${acts}</div></div>`;
+  }).join('') : `<p class="hint">這個分類目前沒有投稿。</p>`;
+
+  $('#cp-stats').innerHTML = `
+    <div><b>${all.filter(p=>p.anon).length}</b><span>則匿名顯示</span></div>
+    <div><b>${all.filter(p=>p.privatePhoto).length}</b><span>張照片只給新人</span></div>
+    <div><b>${all.filter(p=>p.publicOk&&p.status==='shown').length}</b><span>則可放公開精選頁</span></div>`;
+  const inc = all.filter(p=>p.status==='shown'||(S.includeHidden&&p.status==='hidden'));
+  const photos = inc.filter(p=>p.thumb);
+  const total = photos.reduce((s,p)=>s+(p.fullSize||0),0);
+  $('#c-export').innerHTML = `<div class="ex-grid">
+    <div><b>${inc.length}</b><span>則祝福（${photos.length} 張照片）</span></div>
+    <div><b>${Math.ceil(inc.length/2)+2}</b><span>頁（每頁 2 則，含封面與結尾）</span></div>
+    <div><b>${fmtSize(total)}</b><span>原圖總大小</span></div></div>`;
+}
+function openLightbox(p){
+  if(!p.thumb) return;
+  const lb=$('#lightbox');
+  lb.innerHTML = `<div class="lb-card" role="dialog" aria-label="照片資訊">
+    <img src="${p.full||p.thumb}" alt="">
+    <dl class="lb-info">
+      <dt>上傳者</dt><dd>${esc(p.name)}${p.table?`．第 ${esc(p.table)} 桌`:''}</dd>
+      <dt>印刷用原圖</dt><dd>${p.fullW}×${p.fullH}．${fmtSize(p.fullSize)}（300dpi 約 ${printCm(p.fullW,p.fullH)}）</dd>
+      <dt>投影用縮圖</dt><dd>${fmtSize(p.thumbSize)}</dd>
+      ${p.origSize?`<dt>手機原檔</dt><dd>${fmtSize(p.origSize)}</dd>`:''}
+      ${p.sample?'<dt>備註</dt><dd>範例投稿，原圖大小為模擬數值</dd>':''}
+    </dl>
+    <button type="button" class="btn block" id="lb-close">關閉</button></div>`;
+  lb.hidden=false;
+  $('#lb-close').onclick=()=>{ lb.hidden=true; };
+}
+$('#lightbox').addEventListener('click',e=>{ if(e.target.id==='lightbox') e.target.hidden=true; });
+
+/* ========== 共用 ========== */
+function refresh(){
+  updateWall(); updateCtrl();
+  const f=S.posts.find(p=>p.id===S.featId);
+  if(!f || f.status!=='shown') advance(); else drawFeatured();
+  if(S.game==='tree') drawTree();
+  if(S.screen==='mosaic') drawMosaic();
+  if(S.screen==='thanks') renderThanks();
+  if(S.flash) updateFlashUI();
+  checkEnergy();
+}
+function setView(v){
+  S.view=v;
+  ['guest','wall','ctrl'].forEach(k=>{ $('#v-'+k).hidden = k!==v; });
+  [...$('#view-seg').children].forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+  if(v==='guest') renderGuest();
+  if(v==='wall'){ updateWall(); drawFeatured(true); if(S.screen==='mosaic') drawMosaic(); if(S.screen==='thanks') renderThanks(); }
+  if(v==='ctrl') updateCtrl();
+  window.scrollTo(0,0);
+}
+function setGame(g){
+  S.game=g;
+  $('#featured').dataset.id=''; $('#side-feat').dataset.id=''; S.rackKey=''; S.boardKey='';
+  if(G.checked && G.mode!=='flash' && G.step!=='upload'){ resetCompose(); G.step=firstStep(); }
+  renderGuest(); refresh(); drawFeatured(true);
+  toast(`已切換到「${GAME_INFO[g].name}」`);
+}
+$('#view-seg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setView(b.dataset.view); });
+$('#game-select').addEventListener('change',e=>setGame(e.target.value));
+$('#tpl-select').addEventListener('change',e=>{
+  S.tpl=e.target.value; document.documentElement.dataset.tpl=S.tpl;
+  drawQR(); drawTree(); if(S.screen==='mosaic') drawMosaic();
+  if(G.step==='done' && G.last){ G.storyURL=null; G.storyBlob=null; renderGuest(); genStory(); }
+});
+$('#w-full').onclick=()=>{ const w=$('#wall'); try{ const r=w.requestFullscreen&&w.requestFullscreen(); if(r&&r.catch) r.catch(()=>toast('這個環境不支援全螢幕')); else if(!r) toast('這個環境不支援全螢幕'); }catch(_){ toast('這個環境不支援全螢幕'); } };
+document.addEventListener('keydown',e=>{
+  if(S.view!=='wall' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if(e.key==='ArrowRight'){ advance(); }
+  if(e.key===' '){ e.preventDefault(); S.paused=!S.paused; S.lastSwitch=Date.now(); refresh(); }
+});
+let rzT; window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ if(S.view==='wall'){ if(S.screen==='mosaic') drawMosaic(); drawTree(); S.rackKey=''; updateWall(); drawFeatured(); } },150); });
+
+setInterval(()=>{
+  const now=Date.now();
+  const holding = !!S.flash || S.unlockShowing || !!S.stage;
+  if(!S.paused && !holding && S.screen==='wall' && now-S.lastSwitch >= S.interval*1000) advance();
+  const pr=$('#w-progress'); if(pr) pr.style.width = (S.paused||holding||S.screen!=='wall') ? '0' : Math.min(100,(now-S.lastSwitch)/(S.interval*10))+'%';
+  if(S.auto && !flashLive() && now-S.lastAuto>9000){ S.lastAuto=now; simulate(); }
+  if(S.flash){
+    if(S.flash.phase==='live'){
+      tickFlash();
+      if(S.flashSim && now>=S.nextFlashSim){ S.nextFlashSim=now+1400+Math.random()*2600; simulate(); }
+      if(now>=S.flash.end) endFlash();
+    } else if(now>=S.flash.resultUntil){ closeFlash(); }
+  }
+  if(!S.flash && !S.stage && !S.unlockShowing && S.unlockQ.length) runUnlockQueue();
+  if(G.bannerOn!==bannerWanted()) renderGuest();
+}, 250);
+
+/* ========== 啟動 ========== */
+document.documentElement.dataset.tpl = S.tpl;
+S.couplePhoto = genCouple();
+PC_DESIGNS.forEach(d=>{ DESIGN_URL[d.id]=genDesign(d.id); });
+const t0 = Date.now();
+SAMPLES.forEach((s,i)=>{
+  const ph = s.noPhoto ? {thumb:null} : (()=>{ const t=genSample(i+3); return {thumb:t, full:null, fullW:2400, fullH:3000, fullSize:1.25e6+((i*337)%600)*1000, thumbSize:t.length*.75}; })();
+  const d=Object.assign({}, s); delete d.noPhoto;
+  if(d.cardId==null) d.cardId=s.noPhoto?null:d.cardId;
+  S.posts.push(Object.assign({id:'p'+(++uid), ts:t0-(SAMPLES.length-i)*95000, pinned:false, status:'shown', sample:true}, d, ph));
+});
+S.energy.ms.forEach(m=>{ m.unlocked = visible().length>=m.n; });
+buildCtrl(); drawQR(); renderGuest(); advance(); refresh();
+</script>
