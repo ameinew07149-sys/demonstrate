@@ -69,6 +69,15 @@ h1{margin:0;font-family:var(--display);font-weight:900;font-size:clamp(30px,5vw,
 .y-art .chips{display:flex;gap:6px;margin-top:6px}
 .y-art .chips em{font-style:normal;font-size:11px;border:1px solid rgba(228,183,94,.5);color:#f2d69b;padding:1px 7px;border-radius:3px}
 
+.tool{margin-top:22px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 18px;align-items:center;text-decoration:none;background:#14171c;color:#e8eaee;border-radius:10px;padding:18px 22px;box-shadow:0 14px 34px -18px rgba(0,0,0,.35);transition:transform .2s ease}
+.tool:hover{transform:translateY(-2px)}
+.tool-tag{font-size:12px;letter-spacing:.2em;color:#8fb2ff}
+.tool-main{display:grid;gap:2px;min-width:0}
+.tool-main b{font-family:var(--display);font-size:22px;font-weight:900}
+.tool-main span{font-size:14.5px;color:#a9afba}
+.tool-go{font-weight:700;padding:10px 18px;border-radius:999px;background:#8fb2ff;color:#0b0e14;font-size:15px;white-space:nowrap}
+@media(max-width:760px){.tool{grid-template-columns:minmax(0,1fr)}.tool-go{justify-self:start}}
+@media (prefers-reduced-motion:reduce){.tool{transition:none}.tool:hover{transform:none}}
 .notes{margin-top:30px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;border-top:1px solid var(--line);padding-top:20px;font-size:14px;color:var(--muted)}
 .notes b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
 @media(max-width:760px){.notes{grid-template-columns:minmax(0,1fr)}}
@@ -85,27 +94,27 @@ footer{margin-top:28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:
   </header>
 
   <main class="kits">
-    <a class="kit wedding" href="wedding-wall.html">
+    <a class="kit wedding" href="director.html?tpl=wedding">
       <div class="w-art" aria-hidden="true">
         <div class="ph"><i></i></div><div class="ph"><i></i></div><div class="ph"><i></i></div>
         <div class="note">新婚快樂，百年好合</div>
       </div>
       <div class="info">
         <span class="tag">婚禮版</span>
-        <h2>拾光祝福牆</h2>
-        <p>賓客入場掃 QR code，完成拍照任務、寫下祝福，即時出現在投影牆上。</p>
+        <h2>婚禮導播與互動遊戲</h2>
+        <p>一台筆電包辦投影：進場、成長影片、遊戲、抽捧花，都在同一個導播台切換。</p>
         <ul>
-          <li>拍照任務卡、繪馬牆、明信片祝福</li>
-          <li>控制台可隱藏不適合的照片</li>
-          <li>照片匯出電子相簿，分享卡可發限動</li>
-          <li>二進舞台遊戲：拔河、分貝計、手機燈海</li>
+          <li>新人知多少問答、默契快問快答、賓客投票</li>
+          <li>個人與桌次積分排行，隨時送上投影</li>
+          <li>男女方拔河、祝福彈幕、手機燈海、抽捧花</li>
+          <li>背景音樂、音效、影片都由同一個系統控制</li>
         </ul>
-        <span class="who">適合：婚禮企劃、新人</span>
+        <span class="who">適合：婚禮企劃、婚宴主持、新人</span>
         <span class="go">開啟婚禮版示範 →</span>
       </div>
     </a>
 
-    <a class="kit weiya" href="weiya.html">
+    <a class="kit weiya" href="director.html?tpl=classic">
       <div class="y-art" aria-hidden="true">
         <small>頭獎・現金 NT$66,666</small>
         <b>恭喜中獎</b>
@@ -114,12 +123,12 @@ footer{margin-top:28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:
       </div>
       <div class="info">
         <span class="tag">尾牙版</span>
-        <h2>尾牙主持人展示板</h2>
-        <p>從報到、暖場、部門對抗到抽獎，主持人一個畫面掌握整晚節奏。</p>
+        <h2>尾牙導播與互動遊戲</h2>
+        <p>從報到、暖場、部門對抗到抽獎，主持人一個導播台掌握整晚節奏。</p>
         <ul>
-          <li>12 款遊戲：搶答、賓果、紅包雨、拔河等</li>
+          <li>14 款遊戲：搶答、快問快答、賓果、紅包雨、拔河等</li>
           <li>抽獎可缺席重抽、老闆現場加碼</li>
-          <li>經典、物流、科技三種產業風格</li>
+          <li>經典、物流、科技三種產業套組</li>
           <li>每個遊戲附主持手卡台詞</li>
         </ul>
         <span class="who">適合：HR、福委會、尾牙活動公司</span>
@@ -128,8 +137,14 @@ footer{margin-top:28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:
     </a>
   </main>
 
+  <a class="tool" href="wedding-wall.html">
+    <span class="tool-tag">婚禮加購</span>
+    <span class="tool-main"><b>拾光祝福牆</b><span>賓客用手機完成拍照任務、寫祝福，即時上投影牆，會後匯出電子相簿。也可以直接放進婚禮導播台裡播出。</span></span>
+    <span class="tool-go">看祝福牆示範 →</span>
+  </a>
+
   <section class="notes" aria-label="使用說明">
-    <div><b>建議用電腦或平板開啟</b>示範頁可接投影機，按「投影全螢幕」看實際效果。</div>
+    <div><b>建議用電腦開啟</b>導播台按「開啟投影視窗」，把新視窗拖到投影螢幕，就是現場的實際效果。</div>
     <div><b>可依活動客製</b>配色、文案、題目、獎項與遊戲組合都能調整。</div>
     <div><b>正式版即時連線</b>來賓手機與投影畫面同步，示範版為單機模擬。</div>
   </section>

@@ -1,0 +1,1931 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMEI 導播台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 導播台：三個分頁共用一個投影視窗。「導播」是預覽（綠）／播出（紅）雙監看與候選畫面；「遊戲台」左列遊戲、中間即時畫面與主持手卡、右側遊戲控制；
+   「計分排名」看全場積分。右側音樂、音效、影片控制三個分頁都在。同一個檔案加上 #output 就是投影輸出視窗。控制介面固定深色，避免在暗場會場刺眼。 */
+:root{
+  --bg:#0e1013; --panel:#15181d; --panel2:#1c2027; --line:#2a2f38; --line2:#3a414d;
+  --fg:#e8eaee; --muted:#8c93a0; --accent:#8fb2ff;
+  --pvw:#2fbf71; --pgm:#e5484d; --warn:#f0a83a;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --aspect:16/9; --ar:1.7778;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--sans)}
+[hidden]{display:none!important}
+.is-out #dirApp,.is-dir #outApp{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- 共用：畫面渲染（監看、縮圖、投影共用） ---------- */
+.screen{position:relative;overflow:hidden;background:#000;container-type:inline-size}
+.scene{position:absolute;inset:0;overflow:hidden;background:var(--s-bg);color:var(--s-fg);font-family:var(--s-font)}
+.scene.fx{opacity:0;transition:opacity var(--ms,800ms) ease}
+.scene.fx.in{opacity:1}
+.s-black,.s-image,.s-video,.s-slideshow,.s-web{background:#000}
+.s-deco{background:radial-gradient(ellipse at 50% 128%,color-mix(in srgb,var(--s-accent) 30%,var(--s-bg)) 0%,var(--s-bg) 62%)}
+.s-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1.6cqw;padding:6cqw;z-index:1}
+.s-eyebrow{font-family:var(--sans);font-size:2cqw;letter-spacing:.35em;color:var(--s-accent);padding-left:.35em}
+.s-title{font-size:7cqw;font-weight:900;line-height:1.18;text-wrap:balance}
+.s-rule{width:8cqw;height:.22cqw;background:var(--s-accent)}
+.s-sub{font-size:2.4cqw;opacity:.8;max-width:70cqw;text-wrap:balance}
+.s-bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.s-dim{position:absolute;inset:0;background:#000}
+.s-clock{font-family:var(--mono);font-size:17cqw;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.s-countdown .s-endtext{display:none}
+.s-countdown.done .s-clock{display:none}
+.s-countdown.done .s-endtext{display:block}
+.s-media{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.s-media.cover{object-fit:cover}
+.s-ss img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
+.s-ss img.contain{object-fit:contain}
+.s-ss img.on{opacity:1}
+.s-cap{position:absolute;left:0;right:0;bottom:0;padding:5cqw 5cqw 3cqw;font-family:var(--sans);font-size:2.6cqw;text-align:center;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7));z-index:1}
+.s-logo img{max-width:46%;max-height:46%;object-fit:contain}
+.s-logo-text{font-size:6cqw;font-weight:900;letter-spacing:.06em}
+.s-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+.s-frame.scaled{width:1920px;height:calc(1920px / var(--ar));transform:scale(var(--k,.25));transform-origin:0 0;pointer-events:none}
+.s-empty{position:absolute;inset:5%;border:1px dashed rgba(255,255,255,.3);border-radius:4px;display:grid;place-content:center;gap:.4em;text-align:center;color:rgba(255,255,255,.72);font-family:var(--sans);font-size:max(11px,2.6cqw);padding:4%}
+.s-empty span{opacity:.75;font-size:.85em;word-break:break-all}
+.s-empty.web{border-style:solid;border-color:rgba(143,178,255,.35)}
+
+/* ---------- 導播台版面 ---------- */
+.dir{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{font-weight:900;letter-spacing:.08em;font-size:15px;white-space:nowrap}
+.show-name{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid transparent;border-radius:5px;padding:3px 8px;cursor:pointer;font-weight:700;max-width:15em;min-width:0}
+.bar{gap:8px 10px}
+.bar .btn{padding:5px 10px}
+.bar-actions{gap:5px}
+.show-name span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.show-name svg{width:14px;height:14px;flex:none;fill:var(--muted)}
+.show-name:hover{border-color:var(--line2)}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;border:1px solid var(--line2);font-size:12px;color:var(--muted);white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.ok{color:var(--pvw);border-color:color-mix(in srgb,var(--pvw) 45%,transparent)}
+.pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.pill.warn i{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+.bar-actions{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px}
+
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#232832;border-color:var(--line2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#0b0e14;font-weight:700}
+.btn.primary:hover{background:#a9c4ff}
+.btn.ghost{background:transparent}
+.btn.danger{color:#ff8a8d}
+.btn.sm{padding:3px 8px;font-size:12px}
+kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--muted);margin-left:2px}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 290px;min-height:0}
+.desk{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:10px;padding:12px 14px 0;min-height:0;min-width:0}
+.monitors{display:grid;grid-template-columns:minmax(0,1fr) 156px minmax(0,1fr);gap:14px;align-items:start}
+.mon{margin:0;display:grid;gap:6px;min-width:0}
+.mon figcaption{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0;height:22px}
+.tally{font-weight:700;letter-spacing:.12em;padding:1px 8px;border-radius:3px;color:#fff;font-size:12px}
+.pvw .tally{background:var(--pvw);color:#06210f}
+.pgm .tally{background:var(--pgm)}
+.mon-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.mon .clock{color:var(--muted);font-size:12px}
+.mon .screen{aspect-ratio:var(--aspect);width:100%;border-radius:3px;box-shadow:0 0 0 2px var(--line)}
+.pvw .screen{box-shadow:0 0 0 2px color-mix(in srgb,var(--pvw) 75%,transparent)}
+.pgm .screen{box-shadow:0 0 0 2px var(--pgm)}
+
+.switch{display:grid;gap:10px;align-content:start;padding-top:28px}
+.take{height:78px;border:0;border-radius:6px;background:var(--pgm);color:#fff;font-size:22px;font-weight:900;letter-spacing:.1em;cursor:pointer;display:grid;place-content:center;line-height:1.15;box-shadow:0 3px 0 #8f2427}
+.take small{font-size:11px;font-weight:500;letter-spacing:.05em;opacity:.85}
+.take:hover{background:#f05a5f}
+.take:active{transform:translateY(2px);box-shadow:0 1px 0 #8f2427}
+.take:disabled{background:var(--panel2);color:var(--muted);box-shadow:none;cursor:not-allowed}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{background:var(--panel2);border:0;padding:6px 0;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#0b0e14;font-weight:700}
+.quick{display:grid;gap:6px}
+.quick .btn{display:flex;justify-content:space-between;align-items:center}
+
+.f{display:grid;gap:4px;min-width:0}
+.f>span{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.f small{font-size:11.5px;color:var(--muted)}
+.f.mini>span{font-size:11.5px}
+.check{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;color:var(--muted);cursor:pointer}
+.check input{margin-top:3px}
+input[type=text],input[type=number],input[type=time],input[type=date],input[type=url],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:7px 9px;width:100%;min-width:0}
+textarea{resize:vertical}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=color]{width:44px;height:32px;border:1px solid var(--line);border-radius:5px;background:none;padding:2px}
+
+.bin-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border-top:1px solid var(--line);padding-top:10px}
+.bin-head h2{margin:0;font-size:13px;letter-spacing:.15em;font-weight:700}
+.bin-head p{margin:0;font-size:12px;color:var(--muted)}
+.bin{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;align-content:start;padding:2px 2px 14px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px;display:grid;gap:6px;cursor:pointer;min-width:0}
+.card:hover{border-color:var(--line2)}
+.card .thumb{aspect-ratio:var(--aspect);border-radius:3px}
+.card .meta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 6px;align-items:baseline}
+.num{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line2);border-radius:3px;padding:0 4px;line-height:1.5}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:13px}
+.type{grid-column:2;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.acts .btn{padding:2px 0}
+.flag{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:0 6px;border-radius:3px;display:none;letter-spacing:.08em}
+.card.is-pvw{border-color:var(--pvw);box-shadow:0 0 0 1px var(--pvw)}
+.card.is-pvw .flag{display:block;background:var(--pvw);color:#06210f}
+.card.is-pgm{border-color:var(--pgm);box-shadow:0 0 0 1px var(--pgm)}
+.card.is-pgm .flag{display:block;background:var(--pgm);color:#fff}
+.card.dragging{opacity:.4}
+.card.drop-before{box-shadow:-4px 0 0 var(--accent)}
+.card.drop-after{box-shadow:4px 0 0 var(--accent)}
+.card.add{place-content:center;text-align:center;border-style:dashed;color:var(--muted);min-height:140px;background:transparent;gap:4px}
+.card.add b{font-size:26px;font-weight:400;line-height:1;color:var(--fg)}
+
+.rack{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:12px 14px 20px;display:grid;gap:18px;align-content:start}
+.box{display:grid;gap:9px}
+.box h2{margin:0;font-size:12px;letter-spacing:.16em;color:var(--muted);font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.box h2 .st{letter-spacing:0;font-size:12px}
+.box.off .needs-out{opacity:.45;pointer-events:none}
+.notice{font-size:12px;color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:5px;padding:6px 9px;margin:0}
+.now b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.prog{height:5px;background:var(--panel2);border-radius:3px;overflow:hidden;margin:6px 0 3px}
+.prog i{display:block;height:100%;width:0;background:var(--accent)}
+.prog.seek{height:9px;cursor:pointer}
+.prog.seek i{background:var(--pgm)}
+.now .mono,.vtime .mono{font-size:12px;color:var(--muted)}
+.transport{display:flex;gap:6px;flex-wrap:wrap}
+.transport .btn{display:inline-flex;align-items:center;gap:5px}
+.ic{width:15px;height:15px;fill:currentColor;flex:none}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:3px;max-height:220px;overflow:auto}
+.plist li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px;border:1px solid transparent;border-radius:4px}
+.plist li.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.plist li.bad .pl-name{color:#ff8a8d}
+.plist li.empty{display:block;font-size:12px;color:var(--muted);padding:6px 2px}
+.pl-name{background:none;border:0;text-align:left;padding:5px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.pl-acts{display:flex}
+.pl-acts button,.sfx-x{background:none;border:0;color:var(--muted);cursor:pointer;padding:2px 6px;font-size:13px}
+.pl-acts button:hover,.sfx-x:hover{color:var(--fg)}
+.sfx{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sfx-item{position:relative;display:flex}
+.sfx-item .btn{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;padding:9px 22px 9px 10px}
+.sfx-item .btn:active{background:var(--accent);color:#0b0e14}
+.sfx-x{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.sfx .empty{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.vtime{display:flex;justify-content:space-between;align-items:baseline}
+.vtime .big{font-size:26px;font-weight:700;color:var(--fg)}
+.linkbtn{background:none;border:0;color:var(--accent);cursor:pointer;font-size:12px;padding:0;letter-spacing:0}
+
+@media (max-width:1100px){
+  .dir{height:auto}
+  .main{grid-template-columns:minmax(0,1fr)}
+  .rack{border-left:0;border-top:1px solid var(--line)}
+  .bin{overflow:visible}
+}
+@media (max-width:760px){
+  .monitors{grid-template-columns:minmax(0,1fr)}
+  .switch{padding-top:0}
+  .bar-actions{margin-left:0}
+}
+
+/* ---------- 對話框 ---------- */
+dialog.dlg{background:var(--panel);color:var(--fg);border:1px solid var(--line2);border-radius:10px;padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+dialog.dlg.wide{width:min(980px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(4,6,9,.7)}
+.dlg form{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:calc(100vh - 34px);margin:0}
+.dlg header{padding:13px 18px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+.dlg header h3{margin:0;font-size:16px}
+.dlg header span{color:var(--muted);font-size:12.5px}
+.dlg-body{padding:16px 18px;overflow:auto;display:grid;gap:13px;align-content:start}
+.dlg footer{padding:11px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.ed-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+.ed-fields{display:grid;gap:12px}
+.ed-side{position:sticky;top:0;display:grid;gap:6px}
+.ed-side .screen{aspect-ratio:var(--aspect);border-radius:4px;box-shadow:0 0 0 1px var(--line2)}
+.ed-side p{margin:0;font-size:12px;color:var(--muted)}
+@media (max-width:760px){.ed-grid{grid-template-columns:minmax(0,1fr)}.ed-side{position:static;order:-1}}
+.sep{border:0;border-top:1px solid var(--line);margin:2px 0}
+.mpick{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
+.mname{flex:1;min-width:0;font-size:13px;word-break:break-all}
+.mname small{color:var(--muted)}
+.bad{color:#ff8a8d;font-style:normal}
+.slides{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+.sl{position:relative;aspect-ratio:16/10;border-radius:4px;overflow:hidden;background:#000}
+.sl img{width:100%;height:100%;object-fit:cover;display:block}
+.sl div{position:absolute;inset:auto 0 0 0;display:flex;justify-content:space-between;background:rgba(0,0,0,.6)}
+.sl button{background:none;border:0;color:#fff;cursor:pointer;padding:1px 7px;font-size:12px}
+.sl-add{aspect-ratio:16/10;border-style:dashed;white-space:normal;font-size:12px}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{display:grid;gap:3px;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt b{font-size:14.5px}
+.opt span{font-size:12.5px;color:var(--muted)}
+.opt small{font-size:12px;color:var(--accent)}
+@media (max-width:520px){.types{grid-template-columns:1fr}}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.sw{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:5px;padding:5px 9px 5px 6px;background:var(--panel2);cursor:pointer;font-size:12.5px}
+.sw i{width:26px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,.15)}
+.sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+.progress{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.progress .prog{height:8px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13.5px}
+.keys dt{text-align:right}
+.keys dd{margin:0;color:var(--muted)}
+.store{font-size:12.5px;color:var(--muted)}
+
+#toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:grid;gap:8px;z-index:100;width:min(520px,calc(100vw - 32px))}
+.toast{display:flex;align-items:center;gap:10px;background:#242a33;border:1px solid var(--line2);border-radius:7px;padding:9px 13px;box-shadow:0 8px 24px rgba(0,0,0,.45);font-size:13.5px}
+.toast span{flex:1}
+.toast.err{border-color:var(--pgm)}
+
+/* ---------- 投影輸出視窗 ---------- */
+.is-out body{background:#000;overflow:hidden}
+.is-out.nocursor,.is-out.nocursor *{cursor:none!important}
+#outScreen{position:fixed;inset:0}
+.gate{position:fixed;inset:0;z-index:20;display:grid;place-content:center;background:rgba(0,0,0,.84);color:#eee;cursor:pointer;padding:24px}
+.gate-card{display:grid;gap:10px;text-align:center;max-width:34em}
+.gate-card small{letter-spacing:.3em;color:var(--muted);font-size:12px}
+.gate-card b{font-size:clamp(26px,4vw,44px)}
+.gate-card span{font-size:clamp(15px,1.6vw,20px)}
+.gate-card ol{text-align:left;margin:10px auto 0;color:var(--muted);display:grid;gap:4px}
+.gate-card em{font-style:normal;color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:reduce){.pill.warn i{animation:none}}
+
+/* ---------- 分頁 ---------- */
+.tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:2px}
+.tabs button{background:none;border:0;padding:5px 12px;border-radius:5px;cursor:pointer;color:var(--muted);font-weight:700;white-space:nowrap}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{background:var(--panel2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line2)}
+.air{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);min-width:0;max-width:13em}
+.air i{width:8px;height:8px;border-radius:50%;background:var(--pgm);flex:none}
+.air b{color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabwrap{display:grid;min-height:0;min-width:0}
+.tabwrap>section{min-height:0;min-width:0}
+
+/* ---------- 遊戲台 ---------- */
+.gdesk{display:grid;grid-template-columns:196px minmax(0,1fr) 292px;gap:14px;padding:12px 14px;min-height:0}
+.glist{overflow:auto;display:grid;gap:12px;align-content:start;min-height:0;padding-right:2px}
+.glist h3{margin:0 0 5px;font-size:11.5px;letter-spacing:.18em;color:var(--muted);font-weight:500}
+.glist ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.gl-item{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 9px;cursor:pointer;display:grid;line-height:1.35;position:relative}
+.gl-item:hover{border-color:var(--line2)}
+.gl-item b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gl-item small{color:var(--muted);font-size:11.5px}
+.gl-item[aria-current="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.gl-item.live::after{content:"播出";position:absolute;right:7px;top:7px;font-size:10.5px;font-weight:700;background:var(--pgm);color:#fff;border-radius:3px;padding:0 5px}
+.glist .empty{font-size:12.5px;color:var(--muted)}
+.gmain{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:9px;min-width:0;min-height:0}
+.ghead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:30px}
+.ghead b{font-size:15px}
+.ghead .st{font-size:12px;font-weight:700;letter-spacing:.1em;padding:1px 8px;border-radius:3px;background:var(--pvw);color:#06210f}
+.ghead .st.live{background:var(--pgm);color:#fff}
+.ghead .btn{margin-left:auto}
+.gview{aspect-ratio:var(--aspect);width:100%;border-radius:4px;box-shadow:0 0 0 2px color-mix(in srgb,var(--pvw) 75%,transparent)}
+.gview.live{box-shadow:0 0 0 2px var(--pgm)}
+.cue{background:#f1ead8;color:#2a2318;border-radius:5px;padding:9px 14px 12px;overflow:auto;min-height:0;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 27px,#ddd1b4 27px 28px);background-position:0 37px}
+.cue header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #8e1d18;padding-bottom:4px;margin-bottom:2px}
+.cue header b{font-family:var(--serif);font-size:15px}
+.cue header span{font-size:11.5px;color:#8e1d18;letter-spacing:.15em}
+.cue ol{margin:0;padding-left:20px;line-height:28px;font-size:14px}
+.gctl{overflow:auto;display:grid;gap:11px;align-content:start;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:12px;min-height:0}
+.gctl h3{margin:0;font-size:12px;letter-spacing:.16em;color:var(--muted);font-weight:500;display:flex;justify-content:space-between}
+.gctl .empty{font-size:13px;color:var(--muted)}
+.gbtns{display:grid;gap:6px}
+.gbtns.two{grid-template-columns:1fr 1fr}
+.btn.big{padding:12px;font-size:16px;font-weight:700}
+.btn.live-red{background:var(--pgm);border-color:var(--pgm);color:#fff;font-weight:700}
+.qlist{list-style:none;margin:0;padding:0;display:grid;gap:3px;max-height:220px;overflow:auto;counter-reset:q}
+.qlist button{width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:5px 8px;cursor:pointer;font-size:12.5px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px}
+.qlist button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qlist button em{font-style:normal;color:var(--muted);font-family:var(--mono)}
+.qlist button[aria-current="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg))}
+.qlist button.done em{color:var(--pvw)}
+.glog{list-style:none;margin:0;padding:0;font-size:12.5px;display:grid;gap:3px;max-height:200px;overflow:auto}
+.glog li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding-bottom:3px}
+.glog li span:last-child{color:var(--muted);white-space:nowrap}
+.glog li.absent span:first-child{text-decoration:line-through;color:var(--muted)}
+.glog li .row{display:flex;gap:4px}
+.secret{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px dashed var(--line2);border-radius:5px;padding:7px 10px;font-size:12.5px;color:var(--muted)}
+.secret b{font-family:var(--mono);font-size:22px;color:var(--fg)}
+.queue{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:230px;overflow:auto}
+.queue li{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:7px 9px;display:grid;gap:5px;font-size:13px}
+.queue li.flag{border-color:color-mix(in srgb,var(--pgm) 60%,transparent)}
+.queue li small{color:var(--muted)}
+.queue .row{display:flex;gap:6px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+
+/* ---------- 計分排名 ---------- */
+.sdesk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:12px 14px;align-content:start;overflow:auto}
+.sdesk .panel{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:12px;display:grid;gap:10px;align-content:start;min-width:0}
+.sdesk h2{margin:0;font-size:12.5px;letter-spacing:.15em;color:var(--muted);font-weight:500}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13.5px}
+.rank li{display:grid;grid-template-columns:2.4em minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:5px 8px;border-radius:4px;background:var(--bg)}
+.rank li em{font-style:normal;color:var(--muted);font-family:var(--mono)}
+.rank li span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank li small{color:var(--muted);margin-left:6px}
+.rank li strong{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.rank li.top em{color:var(--warn);font-weight:700}
+.rank .empty{background:none;display:block;color:var(--muted);font-size:12.5px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-family:var(--mono)}
+@media (max-width:1180px){
+  .gdesk{grid-template-columns:180px minmax(0,1fr)}
+  .gctl{grid-column:1/-1}
+  .sdesk{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@media (max-width:760px){.gdesk,.sdesk{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- 遊戲畫面（投影、監看共用，單位跟著畫面寬度縮放） ---------- */
+.s-game{background:radial-gradient(ellipse at 50% 125%,color-mix(in srgb,var(--s-accent) 24%,var(--s-bg)) 0%,var(--s-bg) 60%);font-family:var(--sans)}
+.s-game canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.g-top{position:absolute;top:2.6cqw;left:3.4cqw;right:3.4cqw;display:flex;justify-content:space-between;align-items:baseline;gap:2cqw;font-size:1.45cqw;letter-spacing:.12em;color:var(--s-accent);z-index:4}
+.g-top b{font-family:var(--s-font);letter-spacing:.1em;font-size:2.1cqw;color:var(--s-fg);font-weight:900}
+.g-body{position:absolute;inset:7.4cqw 4.6cqw 3.6cqw;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4cqw;text-align:center;z-index:2}
+.g-eye{font-size:1.9cqw;color:var(--s-accent);letter-spacing:.25em}
+.g-big{font-family:var(--mono);font-weight:700;font-size:9cqw;line-height:1;font-variant-numeric:tabular-nums}
+.g-big small{font-family:var(--sans);font-size:2.4cqw;opacity:.65;font-weight:500;margin-left:.6cqw}
+.g-sub{font-size:1.7cqw;opacity:.72}
+.g-title{font-family:var(--s-font);font-weight:900;font-size:3.6cqw;line-height:1.25;text-wrap:balance}
+.g-banner{font-family:var(--s-font);font-weight:900;font-size:3.2cqw;color:var(--s-accent);min-height:1.3em}
+.g-clock{font-family:var(--mono);font-weight:700;font-size:4.2cqw;line-height:1;color:var(--s-accent);font-variant-numeric:tabular-nums}
+.g-clock.big{font-size:6cqw}
+.g-note{font-size:1.6cqw;opacity:.6}
+
+/* 報到 */
+.ci{display:grid;grid-template-columns:1fr 1.3fr;gap:4cqw;align-items:center;width:100%;text-align:left}
+.ci-tk{margin-top:1.8cqw;font-size:1.45cqw;opacity:.8;border-top:1px solid color-mix(in srgb,var(--s-fg) 18%,transparent);padding-top:1.1cqw}
+.ci-bars{display:grid;gap:1.2cqw}
+.ci-row{display:grid;grid-template-columns:11cqw 1fr 6cqw;gap:1.2cqw;align-items:center;font-size:1.5cqw}
+.ci-row i{height:1.5cqw;background:color-mix(in srgb,var(--s-fg) 9%,transparent);border-radius:1cqw;overflow:hidden}
+.ci-row i b{display:block;height:100%;background:var(--s-accent)}
+.ci-row em{font-style:normal;font-family:var(--mono);text-align:right}
+.ci-row.lead span{color:var(--s-accent)}
+
+/* 燈海、彈幕 */
+.lt-msg{position:absolute;left:0;right:0;bottom:6cqw;z-index:3;text-align:center;font-family:var(--s-font);font-weight:900;font-size:4.2cqw;text-shadow:0 0 2cqw rgba(0,0,0,.85);padding-inline:6cqw}
+.dm-layer{position:absolute;inset:7cqw 0 4cqw;z-index:2;overflow:hidden}
+.dm{position:absolute;left:100%;white-space:nowrap;font-size:2.6cqw;font-weight:700;text-shadow:0 0 .8cqw rgba(0,0,0,.9);animation:dmfly 9s linear forwards}
+.dm b{color:var(--s-accent);font-weight:500;font-size:.7em;margin-right:.6em}
+@keyframes dmfly{to{transform:translateX(calc(-100cqw - 100%))}}
+.dm-pin{position:absolute;top:7cqw;left:50%;transform:translateX(-50%);z-index:3;background:var(--s-accent);color:var(--s-bg);font-weight:900;font-size:2.3cqw;padding:.5cqw 2cqw;border-radius:.4cqw;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.dm-static{position:absolute;inset:9cqw 6cqw 6cqw;display:grid;align-content:center;gap:1.2cqw;font-size:2.4cqw;z-index:2}
+.dm-static b{color:var(--s-accent);font-weight:500;font-size:.75em;margin-right:.6em}
+
+/* 問答、快問快答 */
+.qz{justify-content:flex-start;gap:2cqw}
+.qz-q{font-family:var(--s-font);font-weight:900;font-size:3.6cqw;line-height:1.3;text-wrap:balance;min-height:9cqw;display:grid;place-items:center}
+.qz-opts{display:grid;grid-template-columns:1fr 1fr;gap:1.3cqw;width:100%;text-align:left}
+.qz-o{position:relative;display:flex;align-items:center;gap:1.4cqw;border:.15cqw solid color-mix(in srgb,var(--s-fg) 22%,transparent);border-radius:.8cqw;padding:1.3cqw 1.6cqw;font-size:2.2cqw;overflow:hidden;min-height:7cqw}
+.qz-o i{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--oc) 28%,transparent);z-index:0}
+.qz-o em,.qz-o span,.qz-o b{position:relative;z-index:1}
+.qz-o em{font-style:normal;font-family:var(--mono);font-weight:700;width:3.6cqw;height:3.6cqw;flex:none;display:grid;place-items:center;border-radius:.5cqw;background:var(--oc);color:#fff;font-size:2cqw}
+.qz-o span{flex:1}
+.qz-o b{font-family:var(--mono);font-size:2cqw}
+.qz-o.right{border-color:var(--s-accent);box-shadow:0 0 0 .3cqw var(--s-accent)}
+.qz-o.dim{opacity:.42}
+.qz-foot{display:flex;justify-content:space-between;align-items:center;width:100%;font-size:1.7cqw;opacity:.85;margin-top:auto;gap:2cqw}
+.rp-q{font-family:var(--s-font);font-weight:900;font-size:4.4cqw;line-height:1.25;text-wrap:balance;min-height:11cqw;display:grid;place-items:center}
+.rp-vs{display:grid;grid-template-columns:1fr auto 1fr;gap:2.4cqw;align-items:center;width:100%}
+.rp-side{border-radius:1cqw;padding:3cqw 2cqw;display:grid;gap:.6cqw;place-items:center;border:.2cqw solid color-mix(in srgb,var(--s-fg) 20%,transparent);transition:opacity .3s}
+.rp-side b{font-family:var(--s-font);font-weight:900;font-size:5.4cqw;line-height:1.1}
+.rp-side em{font-style:normal;font-family:var(--mono);font-size:2.6cqw}
+.rp-side.s0{background:color-mix(in srgb,#3e8ed0 22%,transparent)}
+.rp-side.s1{background:color-mix(in srgb,#e5679a 22%,transparent)}
+.rp-side.right{border-color:var(--s-accent);box-shadow:0 0 0 .35cqw var(--s-accent)}
+.rp-side.dim{opacity:.35}
+.rp-mid{font-family:var(--mono);font-weight:700;font-size:3cqw;opacity:.75}
+
+/* 投票、排行榜 */
+.vt-list,.bd-list{width:100%;display:grid;gap:1cqw;text-align:left;list-style:none;margin:0;padding:0}
+.vt-row{display:grid;grid-template-columns:26cqw 1fr 8cqw;gap:1.4cqw;align-items:center;font-size:2cqw}
+.vt-row small{display:block;font-size:1.3cqw;opacity:.6}
+.vt-row i{height:3cqw;background:color-mix(in srgb,var(--s-fg) 7%,transparent);border-radius:.4cqw;overflow:hidden}
+.vt-row i b{display:block;height:100%;background:color-mix(in srgb,var(--s-accent) 70%,var(--s-bg))}
+.vt-row.first i b{background:var(--s-accent)}
+.vt-row em{font-style:normal;font-family:var(--mono);font-size:2.4cqw;text-align:right}
+.bd{gap:1.2cqw}
+.bd-list{gap:.6cqw}
+.bd-list li{display:grid;grid-template-columns:4cqw minmax(0,22cqw) 1fr 9cqw;gap:1.4cqw;align-items:center;font-size:1.9cqw;padding:.45cqw 1.2cqw;border-radius:.5cqw;background:color-mix(in srgb,var(--s-fg) 5%,transparent)}
+.bd-list li em{font-style:normal;font-family:var(--mono);font-weight:700;opacity:.7}
+.bd-list li span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-list li small{font-size:1.3cqw;opacity:.6;margin-left:.8cqw}
+.bd-list li i{height:1.2cqw;border-radius:1cqw;background:color-mix(in srgb,var(--s-fg) 8%,transparent);overflow:hidden}
+.bd-list li i b{display:block;height:100%;background:var(--s-accent)}
+.bd-list li strong{font-family:var(--mono);text-align:right}
+.bd-list li.r1{background:color-mix(in srgb,var(--s-accent) 22%,transparent);font-size:2.3cqw}
+.bd-list li.r1 em,.bd-list li.r2 em,.bd-list li.r3 em{color:var(--s-accent);opacity:1}
+.bd-empty{font-size:2cqw;opacity:.6}
+
+/* 拔河、賽跑、分貝 */
+.tg{width:100%;display:grid;gap:2.4cqw}
+.tg-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:2cqw}
+.tg-t{font-family:var(--s-font);font-weight:900;font-size:4.2cqw;line-height:1.15;text-align:left}
+.tg-t small{display:block;font-family:var(--sans);font-weight:500;font-size:1.5cqw;opacity:.65}
+.tg-t.b{text-align:right}
+.rope{position:relative;height:5cqw}
+.rope::before{content:"";position:absolute;left:0;right:0;top:50%;height:1.1cqw;transform:translateY(-50%);border-radius:1cqw;background:repeating-linear-gradient(115deg,#c9a46a 0 1.2cqw,#9c7a45 1.2cqw 2.2cqw)}
+.rope .mid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--s-fg);opacity:.5}
+.knot{position:absolute;top:50%;width:4.2cqw;height:4.2cqw;border-radius:50%;background:#cf3a2f;border:.4cqw solid var(--s-accent);transform:translate(-50%,-50%);transition:left .12s linear}
+.k-logistics .rope::before{border-radius:0;height:1.4cqw;background:repeating-linear-gradient(90deg,#f4c21b 0 2cqw,#16181a 2cqw 3cqw)}
+.k-logistics .knot{border-radius:.3cqw;background:#b07a45;border-color:#e8d2a6}
+.k-tech .rope::before{height:.6cqw;background:linear-gradient(90deg,#ff4f7b,var(--s-accent));box-shadow:0 0 1.5cqw var(--s-accent)}
+.k-tech .knot{border-radius:.4cqw;background:var(--s-bg);box-shadow:0 0 2cqw var(--s-accent)}
+.k-wedding .knot{background:#e9a9b5;border-color:#fff}
+.tg-score{display:flex;justify-content:space-between;font-family:var(--mono);font-size:1.7cqw;opacity:.85}
+.rc{width:100%;display:grid;gap:1cqw}
+.rc-lane{display:grid;grid-template-columns:14cqw 1fr;gap:1.2cqw;align-items:center;font-size:1.6cqw;text-align:left}
+.rc-lane span b{font-family:var(--mono);color:var(--s-accent);margin-left:.6cqw}
+.rc-track{position:relative;height:4cqw;border-radius:.5cqw;background:color-mix(in srgb,var(--s-fg) 6%,transparent);border-right:.5cqw dashed var(--s-accent)}
+.racer{position:absolute;top:50%;width:3.6cqw;height:3.6cqw;transform:translate(-50%,-50%);transition:left .1s linear;border-radius:50%;background:radial-gradient(circle,#fff6 30%,var(--s-accent) 31% 60%,color-mix(in srgb,var(--s-accent) 50%,#000) 61%)}
+.k-logistics .racer{width:5cqw;height:2.8cqw;border-radius:.3cqw;background:linear-gradient(90deg,#f6f2ea 0 70%,#e2601b 70%)}
+.k-tech .racer{width:4.5cqw;height:1.2cqw;border-radius:1cqw;background:linear-gradient(90deg,transparent,var(--s-accent));box-shadow:0 0 1.6cqw var(--s-accent)}
+.meter{display:flex;gap:.45cqw;align-items:end;height:15cqw;width:70%}
+.meter i{flex:1;background:color-mix(in srgb,var(--s-fg) 8%,transparent);border-radius:.3cqw}
+.meter i.on{background:var(--s-accent)}
+.meter i.hot{background:#e5484d}
+
+/* 紅包雨 */
+.rn-board{position:absolute;right:3.5cqw;top:7cqw;width:24cqw;background:rgba(0,0,0,.55);border:1px solid color-mix(in srgb,var(--s-accent) 45%,transparent);border-radius:.6cqw;padding:1.2cqw 1.4cqw;z-index:3;text-align:left}
+.rn-board h4{margin:0 0 .6cqw;font-size:1.4cqw;letter-spacing:.2em;color:var(--s-accent);font-weight:500}
+.rn-board ol{margin:0;padding-left:2.2cqw;font-size:1.45cqw;display:grid;gap:.3cqw}
+.rn-board li b{float:right;font-family:var(--mono);color:var(--s-accent)}
+.rn-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;pointer-events:none;text-align:center;gap:1cqw}
+
+/* 終極密碼、賓果、抽獎 */
+.gs-range{font-family:var(--mono);font-weight:700;font-size:11cqw;line-height:1;display:flex;gap:3cqw;align-items:center;font-variant-numeric:tabular-nums}
+.gs-range em{font-style:normal;font-size:4cqw;color:var(--s-accent)}
+.gs-bar{position:relative;width:70%;height:1.3cqw;background:color-mix(in srgb,var(--s-fg) 8%,transparent);border-radius:1cqw}
+.gs-bar i{position:absolute;top:0;bottom:0;background:var(--s-accent);border-radius:1cqw}
+.gs-boom{font-family:var(--mono);font-weight:700;font-size:13cqw;line-height:1;color:#e5484d}
+.bg{display:grid;grid-template-columns:auto 1fr;gap:3.4cqw;align-items:center;width:100%}
+.ball{width:19cqw;height:19cqw;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(circle at 35% 30%,#fff9,var(--s-accent) 50%,color-mix(in srgb,var(--s-accent) 45%,#000));color:#1a1206;box-shadow:0 1cqw 3cqw rgba(0,0,0,.5);animation:gpop .45s ease}
+.ball small{font-size:2.8cqw;font-weight:900;line-height:1}
+.ball b{font-family:var(--mono);font-size:8.5cqw;line-height:1}
+.k-tech .ball{border-radius:1.2cqw;background:var(--s-bg);color:var(--s-accent);border:.3cqw solid var(--s-accent)}
+.k-logistics .ball{border-radius:1cqw;background:#f6f2ea;border:.6cqw solid #16181a}
+@keyframes gpop{0%{transform:scale(.7)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
+.bboard{display:grid;grid-template-columns:3cqw repeat(15,1fr);gap:.35cqw;font-family:var(--mono);font-size:1.2cqw}
+.bboard span{display:grid;place-items:center;height:2.5cqw;border-radius:.3cqw;background:color-mix(in srgb,var(--s-fg) 6%,transparent);opacity:.6}
+.bboard span.l{background:none;color:var(--s-accent);font-weight:900;font-size:1.6cqw;opacity:1}
+.bboard span.on{background:var(--s-accent);color:var(--s-bg);font-weight:700;opacity:1}
+.bstats{display:flex;justify-content:center;gap:3cqw;font-size:1.8cqw}
+.bstats b{font-family:var(--mono);color:var(--s-accent);font-size:2.6cqw;margin-left:.4cqw}
+.bstats .win b{color:#e5484d}
+.lt-prize{font-family:var(--s-font);font-weight:900;font-size:3cqw}
+.roll{font-family:var(--s-font);font-weight:900;font-size:8.2cqw;line-height:1.15;min-height:1.15em}
+.roll.won{color:var(--s-accent);text-shadow:0 0 3cqw color-mix(in srgb,var(--s-accent) 60%,transparent);animation:gpop .5s ease}
+.lt-meta{font-family:var(--mono);font-size:1.8cqw;opacity:.7;min-height:1.4em}
+.won-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:.8cqw;font-size:1.4cqw;max-width:80%}
+.won-strip span{border:1px solid color-mix(in srgb,var(--s-accent) 50%,transparent);padding:.2cqw 1cqw;border-radius:.4cqw}
+.won-strip span.absent{opacity:.4;text-decoration:line-through}
+@media (prefers-reduced-motion:reduce){.roll.won,.ball{animation:none}}
+
+.prizes{display:grid;gap:5px}
+.prize-btn{display:grid;grid-template-columns:1fr auto;gap:6px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px;cursor:pointer}
+.prize-btn small{display:block;color:var(--muted);font-size:11.5px}
+.prize-btn b{font-family:var(--mono);color:var(--fg);align-self:center}
+.prize-btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.prize-btn.done{opacity:.45}
+.add-h{margin:4px 0 0;font-size:12px;letter-spacing:.15em;color:var(--muted);font-weight:500}
+.types{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+</style>
+</head>
+<body>
+
+<!-- ==================== 導播台 ==================== -->
+<div id="dirApp" class="dir">
+  <header class="bar">
+    <div class="brand">AMEI 導播台</div>
+    <nav class="tabs" role="tablist" aria-label="工作區">
+      <button type="button" role="tab" data-tab="direct" aria-selected="true">導播</button>
+      <button type="button" role="tab" data-tab="game" aria-selected="false">遊戲台</button>
+      <button type="button" role="tab" data-tab="score" aria-selected="false">計分排名</button>
+    </nav>
+    <button type="button" class="show-name" id="showName" title="場次設定"><span id="showNameTxt">—</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.3V20h2.7l8-8-2.7-2.7-8 8zM18.7 8l-2.7-2.7 1.6-1.6a1 1 0 0 1 1.4 0l1.3 1.3a1 1 0 0 1 0 1.4L18.7 8z"/></svg></button>
+    <span class="air" id="airChip" title="目前投影上的畫面"><i></i><b id="airName">—</b></span>
+    <span class="pill" id="outPill" role="status"><i></i><span>投影視窗未開啟</span></span>
+    <nav class="bar-actions" aria-label="場次">
+      <button type="button" class="btn primary" id="btnOpenOut">開啟投影視窗</button>
+      <button type="button" class="btn" id="btnSettings">場次設定</button>
+      <button type="button" class="btn" id="btnImport">匯入</button>
+      <button type="button" class="btn" id="btnExport">匯出</button>
+      <button type="button" class="btn" id="btnNew">新場次</button>
+      <button type="button" class="btn ghost" id="btnKeys" title="快捷鍵" aria-label="快捷鍵">?</button>
+    </nav>
+  </header>
+
+  <main class="main">
+    <div class="tabwrap">
+      <!-- 導播 -->
+      <section class="desk" id="tabDirect" role="tabpanel">
+        <div class="monitors">
+          <figure class="mon pvw">
+            <figcaption><span class="tally">預覽</span><span class="mon-name" id="pvwName">—</span></figcaption>
+            <div class="screen" id="pvwScreen"></div>
+          </figure>
+          <div class="switch">
+            <button type="button" class="take" id="btnTake" disabled>切換<small>Enter</small></button>
+            <div class="seg" id="trSeg" role="group" aria-label="轉場方式"><button type="button" data-tr="cut">直切</button><button type="button" data-tr="fade">淡入</button></div>
+            <label class="f mini"><span>淡入時間 <output id="fadeOut" class="mono"></output></span><input type="range" id="fadeMs" min="200" max="3000" step="100"></label>
+            <div class="quick">
+              <button type="button" class="btn" id="btnBlack">黑畫面 <kbd>B</kbd></button>
+              <button type="button" class="btn" id="btnLogo">Logo <kbd>L</kbd></button>
+            </div>
+            <label class="check"><input type="checkbox" id="autoNext"> 切換後，預覽自動跳到下一個</label>
+          </div>
+          <figure class="mon pgm">
+            <figcaption><span class="tally">播出</span><span class="mon-name" id="pgmName">—</span><span class="mono clock" id="pgmClock"></span></figcaption>
+            <div class="screen" id="pgmScreen"></div>
+          </figure>
+        </div>
+        <div class="bin-head"><h2>候選畫面</h2><p>點一下放到預覽，按「切換」送上投影。遊戲畫面到「遊戲台」操作。拖曳卡片調整順序，數字鍵 1–9 快速選取。</p></div>
+        <div class="bin" id="bin"></div>
+      </section>
+
+      <!-- 遊戲台 -->
+      <section class="gdesk" id="tabGame" role="tabpanel" hidden>
+        <nav class="glist" id="glist" aria-label="這個場次的遊戲"></nav>
+        <div class="gmain">
+          <div class="ghead"><span class="st" id="gSt">預覽</span><b id="gName">—</b><button type="button" class="btn primary" id="gTake">送上投影</button></div>
+          <div class="screen gview" id="gScreen"></div>
+          <div class="cue" id="gCue"></div>
+        </div>
+        <div class="gctl" id="gCtl"></div>
+      </section>
+
+      <!-- 計分排名 -->
+      <section class="sdesk" id="tabScore" role="tabpanel" hidden>
+        <div class="panel"><h2>個人排行（前 20 名）</h2><ol class="rank" id="rkP"></ol></div>
+        <div class="panel"><h2 id="rkTH">桌次排行</h2><ol class="rank" id="rkT"></ol></div>
+        <div class="panel">
+          <h2>名單與計分</h2>
+          <dl class="facts" id="rosterFacts"></dl>
+          <div class="gbtns">
+            <button type="button" class="btn primary" data-sa="board-person">個人排行送上投影</button>
+            <button type="button" class="btn" data-sa="board-team" id="saTeam">桌次排行送上投影</button>
+            <button type="button" class="btn" data-sa="regen">重新產生示範名單</button>
+            <button type="button" class="btn danger" data-sa="reset">計分歸零</button>
+          </div>
+          <p class="hint">問答與快問快答的得分會累計在這裡。示範版的來賓、作答都是模擬資料；正式版會由來賓手機即時送進來。</p>
+        </div>
+      </section>
+    </div>
+
+    <aside class="rack" aria-label="聲音與影片">
+      <section class="box" id="vidBox" hidden>
+        <h2>播出中的影片</h2>
+        <div class="now"><b id="vidName">—</b></div>
+        <div class="vtime"><span class="big mono" id="vidRemain">-00:00</span><span class="mono" id="vidTime">00:00 / 00:00</span></div>
+        <div class="prog seek" id="vidSeek" title="點一下跳到該位置"><i id="vidBar"></i></div>
+        <div class="transport">
+          <button type="button" class="btn primary" id="vidPlay">暫停</button>
+          <button type="button" class="btn" id="vidRestart">從頭播放</button>
+        </div>
+        <label class="f"><span>影片音量 <output id="vidVolOut" class="mono"></output></span><input type="range" id="vidVol" min="0" max="1" step="0.05"></label>
+      </section>
+
+      <section class="box" id="musicBox">
+        <h2>背景音樂 <span class="st" id="bgmState">未播放</span></h2>
+        <p class="notice" id="audioNotice">聲音由投影視窗播放，開啟投影視窗並點一下啟用後，音樂才會出聲。</p>
+        <div class="now needs-out"><b id="bgmName">—</b><div class="prog"><i id="bgmBar"></i></div><span class="mono" id="bgmTime">00:00 / 00:00</span></div>
+        <div class="transport needs-out">
+          <button type="button" class="btn" id="bgmPrev" title="上一首" aria-label="上一首"><svg class="ic" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+          <button type="button" class="btn primary" id="bgmPlay"><svg class="ic" viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg><span>播放</span></button>
+          <button type="button" class="btn" id="bgmNext" title="下一首" aria-label="下一首"><svg class="ic" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+          <button type="button" class="btn" id="bgmFade">淡出</button>
+        </div>
+        <label class="f"><span>音量 <output id="bgmVolOut" class="mono"></output></span><input type="range" id="bgmVol" min="0" max="1" step="0.01"></label>
+        <div class="row2">
+          <label class="f"><span>播放方式</span><select id="bgmMode"><option value="loop">清單循環</option><option value="one">單曲重複</option><option value="list">播完停止</option></select></label>
+          <label class="check" style="align-self:end"><input type="checkbox" id="duck"> 影片有聲音時自動壓低音樂</label>
+        </div>
+        <ol class="plist" id="plist"></ol>
+        <button type="button" class="btn" id="bgmAdd">＋ 加入音樂</button>
+      </section>
+
+      <section class="box" id="sfxBox">
+        <h2>音效 <button type="button" class="linkbtn" id="sfxStop">全部停止</button></h2>
+        <div class="sfx needs-out" id="sfxGrid"></div>
+        <button type="button" class="btn" id="sfxAdd">＋ 加入音效</button>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<!-- 畫面設定 -->
+<dialog class="dlg wide" id="dlgScene">
+  <form method="dialog">
+    <header><h3>畫面設定</h3><span id="edType"></span></header>
+    <div class="dlg-body">
+      <div class="ed-grid">
+        <div class="ed-fields" id="edFields"></div>
+        <div class="ed-side"><div class="screen" id="edPreview"></div><p>即時預覽。修改正在播出的畫面，要按「套用到投影」才會更新。</p></div>
+      </div>
+    </div>
+    <footer><button type="button" class="btn" id="edApply" hidden>套用到投影</button><button class="btn primary" value="done">完成</button></footer>
+  </form>
+</dialog>
+
+<!-- 新增畫面 -->
+<dialog class="dlg wide" id="dlgAdd">
+  <form method="dialog">
+    <header><h3>新增畫面</h3><span>選一種畫面或遊戲</span></header>
+    <div class="dlg-body" id="addBody"></div>
+    <footer><button class="btn" value="cancel">取消</button></footer>
+  </form>
+</dialog>
+
+<!-- 場次設定 -->
+<dialog class="dlg wide" id="dlgSettings">
+  <form method="dialog">
+    <header><h3>場次設定</h3><span>修改會自動儲存在這台電腦</span></header>
+    <div class="dlg-body" id="setBody"></div>
+    <footer><button class="btn primary" value="done">完成</button></footer>
+  </form>
+</dialog>
+
+<!-- 匯出 -->
+<dialog class="dlg" id="dlgExport">
+  <form method="dialog">
+    <header><h3>匯出場次</h3><span id="expLast"></span></header>
+    <div class="dlg-body">
+      <button type="button" class="opt" id="expZip"><b>場次包（.zip）</b><span>包含所有圖片、影片、音樂、題目與設定。換電腦時匯入就能直接使用。</span><small id="expSize"></small></button>
+      <button type="button" class="opt" id="expJson"><b>設定檔（.json）</b><span>只有畫面順序、題目、文字與設定，檔案很小。換電腦後要重新連結素材檔。</span></button>
+      <div class="progress" id="expProg" hidden><div class="prog"><i id="expBar"></i></div><span id="expTxt">打包中…</span></div>
+    </div>
+    <footer><button class="btn" value="cancel">關閉</button></footer>
+  </form>
+</dialog>
+
+<!-- 新場次 -->
+<dialog class="dlg" id="dlgNew">
+  <form method="dialog">
+    <header><h3>新場次</h3><span>從範本開始，之後都能修改</span></header>
+    <div class="dlg-body">
+      <p class="notice">目前的場次「<span id="newCur"></span>」會被取代，計分也會歸零。還要用的話，請先匯出。</p>
+      <div class="types">
+        <button type="button" class="opt" data-tpl="wedding"><b>婚禮</b><span>入場輪播、報到、進場、成長影片、新人問答、快問快答、投票、拔河、抽捧花</span></button>
+        <button type="button" class="opt" data-tpl="classic"><b>尾牙・經典喜慶</b><span>報到、燈海、致詞、回顧影片、拔河、搶答、紅包雨、分貝、摸彩</span></button>
+        <button type="button" class="opt" data-tpl="logistics"><b>尾牙・物流運輸</b><span>同上流程，用語與獎項換成車隊、站點、包裹</span></button>
+        <button type="button" class="opt" data-tpl="tech"><b>尾牙・科技產業</b><span>同上流程，用語與題目換成科技公司風格</span></button>
+        <button type="button" class="opt" data-tpl="blank"><b>空白場次</b><span>只有一張標題卡，自己從頭排</span></button>
+      </div>
+    </div>
+    <footer><button type="button" class="btn" id="newExport">先匯出目前場次</button><button class="btn" value="cancel">取消</button></footer>
+  </form>
+</dialog>
+
+<!-- 快捷鍵 -->
+<dialog class="dlg" id="dlgKeys">
+  <form method="dialog">
+    <header><h3>快捷鍵</h3><span>在導播台視窗使用，三個分頁都有效</span></header>
+    <div class="dlg-body">
+      <dl class="keys">
+        <dt><kbd>1</kbd>–<kbd>9</kbd> <kbd>0</kbd></dt><dd>把第 1–10 個候選畫面放到預覽</dd>
+        <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>預覽上一個／下一個畫面</dd>
+        <dt><kbd>Enter</kbd></dt><dd>切換：把預覽送上投影</dd>
+        <dt><kbd>C</kbd> <kbd>F</kbd></dt><dd>轉場改成直切／淡入</dd>
+        <dt><kbd>B</kbd></dt><dd>投影切到黑畫面</dd>
+        <dt><kbd>L</kbd></dt><dd>投影切到 Logo</dd>
+        <dt><kbd>M</kbd></dt><dd>背景音樂播放／暫停</dd>
+        <dt><kbd>V</kbd></dt><dd>播出中的影片播放／暫停</dd>
+        <dt><kbd>G</kbd></dt><dd>切換到遊戲台分頁</dd>
+      </dl>
+      <p class="store">投影視窗：點兩下或按 <kbd>F</kbd> 切換全螢幕。</p>
+    </div>
+    <footer><button class="btn primary" value="done">知道了</button></footer>
+  </form>
+</dialog>
+
+<!-- 確認 -->
+<dialog class="dlg" id="dlgAsk">
+  <form method="dialog">
+    <header><h3 id="askTitle"></h3></header>
+    <div class="dlg-body"><p id="askText" style="margin:0"></p></div>
+    <footer id="askBtns"></footer>
+  </form>
+</dialog>
+
+<div id="toasts" aria-live="polite"></div>
+
+<!-- ==================== 投影輸出 ==================== -->
+<div id="outApp">
+  <div class="screen" id="outScreen"></div>
+  <div class="gate" id="outGate">
+    <div class="gate-card">
+      <small>AMEI 導播台・投影輸出</small>
+      <b>點一下這裡</b>
+      <span>進入全螢幕並啟用聲音</span>
+      <ol><li>先把這個視窗拖到投影螢幕（延伸螢幕）</li><li>再點一下畫面</li></ol>
+      <em>之後在這個畫面點兩下或按 F，可以切換全螢幕</em>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const IS_OUT=location.hash==='#output';
+document.documentElement.classList.add(IS_OUT?'is-out':'is-dir');
+if(IS_OUT)document.title='投影輸出｜AMEI 導播台';
+
+/* ================= 工具 ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const uid=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const fmtT=s=>{if(!isFinite(s)||s<0)s=0;s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+':'+pad(m):pad(m))+':'+pad(x)};
+const fmtN=n=>Math.round(n).toLocaleString('zh-TW');
+const fmtSize=b=>b>=1e9?(b/1e9).toFixed(2)+' GB':b>=1e6?(b/1e6).toFixed(1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
+const safe=s=>String(s||'未命名').replace(/[\\/:*?"<>|]+/g,'_').trim()||'未命名';
+function srand(seed){let s=(seed>>>0)||1;return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const shuffle=(a,r=Math.random)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=(a,r=Math.random)=>a[Math.floor(r()*a.length)];
+
+/* ================= 本機儲存（IndexedDB） ================= */
+let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('amei-director',1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv');if(!d.objectStoreNames.contains('media'))d.createObjectStore('media')};r.onsuccess=()=>{db=r.result;res()};r.onerror=()=>rej(r.error)})}
+function rq(store,mode,fn){return new Promise((res,rej)=>{const t=db.transaction(store,mode);const r=fn(t.objectStore(store));t.oncomplete=()=>res(r?r.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('儲存空間不足或被瀏覽器拒絕'))})}
+const idb={get:(s,k)=>rq(s,'readonly',o=>o.get(k)),put:(s,k,v)=>rq(s,'readwrite',o=>o.put(v,k)),del:(s,k)=>rq(s,'readwrite',o=>o.delete(k)),keys:s=>rq(s,'readonly',o=>o.getAllKeys()),clear:s=>rq(s,'readwrite',o=>o.clear())};
+
+const urlCache=new Map();
+async function loadURL(id){if(!id)return null;if(urlCache.has(id))return urlCache.get(id);let b=null;try{b=await idb.get('media',id)}catch(e){}if(!b)return null;const u=URL.createObjectURL(b);urlCache.set(id,u);return u}
+const urlOf=id=>id?urlCache.get(id)||null:null;
+const sceneIds=sc=>sc?[sc.media,sc.bg].concat(sc.images||[]).filter(Boolean):[];
+const ensure=ids=>Promise.all([...new Set(ids.filter(Boolean))].map(loadURL));
+
+/* ================= 主題與畫面類型 ================= */
+const THEMES={
+  lacquer:{label:'尾牙紅金',bg:'#1a0807',fg:'#f6ead6',accent:'#e4b75e',font:'serif'},
+  forest:{label:'婚禮森林',bg:'#18231a',fg:'#f3f0e4',accent:'#cdb57c',font:'serif'},
+  blush:{label:'婚禮粉霧',bg:'#2a1b20',fg:'#fbf0ee',accent:'#e9a9b5',font:'serif'},
+  signal:{label:'科技藍',bg:'#0a1022',fg:'#e6edf7',accent:'#5ad1ff',font:'sans'},
+  road:{label:'物流橘',bg:'#141618',fg:'#eef0f2',accent:'#f4c21b',font:'sans'},
+  mono:{label:'極簡黑白',bg:'#050505',fg:'#ffffff',accent:'#cfcfcf',font:'sans'}
+};
+const FONTS={serif:'"Noto Serif TC","Songti TC","PMingLiU",serif',sans:'"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif'};
+const TYPES={
+  title:{label:'標題卡',desc:'主標題、小標與副標，可加背景圖',make:()=>({eyebrow:'',title:'標題文字',sub:'',bg:null,dim:.45})},
+  countdown:{label:'倒數計時',desc:'倒數幾分鐘，或倒數到指定時間',make:()=>({title:'活動即將開始',mode:'min',minutes:10,until:'19:00',endText:'活動開始'})},
+  image:{label:'圖片',desc:'單張圖片，例如流程表、座位圖',make:()=>({media:null,fit:'contain'})},
+  slideshow:{label:'圖片輪播',desc:'多張照片自動輪播，適合入場等候',make:()=>({images:[],iv:6,fit:'cover',caption:''})},
+  video:{label:'影片',desc:'本機影片檔，可控制播放與音量',make:()=>({media:null,autoplay:true,end:'hold',volume:1})},
+  web:{label:'網頁',desc:'嵌入其他網頁，例如祝福牆',make:()=>({url:''})},
+  game:{label:'遊戲',desc:'互動遊戲',make:()=>({game:'checkin'})}
+};
+const BUILTIN={black:{id:'__black',type:'black',name:'黑畫面'},logo:{id:'__logo',type:'logo',name:'Logo'}};
+const newScene=(type,p)=>Object.assign({id:uid(),type,name:TYPES[type].label,bgm:{action:'keep',track:null}},TYPES[type].make(),p||{});
+const DEFAULT_ENV={theme:THEMES.lacquer,logo:null,logoText:'',media:{},kit:'classic'};
+function themeVars(el,th){el.style.setProperty('--s-bg',th.bg);el.style.setProperty('--s-fg',th.fg);el.style.setProperty('--s-accent',th.accent);el.style.setProperty('--s-font',FONTS[th.font]||FONTS.sans)}
+
+/* ================= 遊戲清單 ================= */
+const GAME_META={
+  checkin:{label:'報到看板',cat:'開場暖場',desc:'到場率即時統計，分組比較'},
+  lights:{label:'手機燈海',cat:'開場暖場',desc:'全場手機一起亮起，搭配字幕'},
+  danmaku:{label:'彈幕留言',cat:'開場暖場',desc:'祝福與留言飛過投影，可先審核'},
+  quiz:{label:'問答搶答',cat:'問答計分',desc:'四選一，答對又快得分最多'},
+  rapid:{label:'快問快答',cat:'問答計分',desc:'二選一、每題幾秒，猜中就得分'},
+  board:{label:'積分排行榜',cat:'問答計分',desc:'個人或分組的累計積分'},
+  vote:{label:'即時投票',cat:'全場同樂',desc:'選項票數即時賽跑，可最後揭曉'},
+  rain:{label:'紅包雨',cat:'全場同樂',desc:'全場點擊落下的物品搶點數'},
+  guess:{label:'終極密碼',cat:'全場同樂',desc:'猜數字，範圍越縮越小'},
+  tug:{label:'拔河',cat:'分組對抗',desc:'兩組手機狂點，依人數平均'},
+  race:{label:'搖一搖賽跑',cat:'分組對抗',desc:'各組搖手機衝刺，排出名次'},
+  db:{label:'歡呼分貝計',cat:'分組對抗',desc:'用筆電麥克風量現場音量'},
+  bingo:{label:'賓果',cat:'抽獎時間',desc:'1–75 號，三條線就賓果'},
+  lottery:{label:'抽獎',cat:'抽獎時間',desc:'依獎項抽出，可缺席重抽、加碼'}
+};
+const GAME_CATS=['開場暖場','問答計分','全場同樂','分組對抗','抽獎時間'];
+
+const BASE_CUE={
+  checkin:['各位晚安！入場時請用手機掃描桌上的 QR code 報到。','報到完成就自動取得抽獎資格，沒報到的抽不到喔！','目前到場率最高的是＿＿，其他組要加油了。'],
+  lights:['請大家打開手機，點畫面上的「開燈」。','全場一起把燈舉高——','掌聲歡迎我們的總經理上台致詞！'],
+  danmaku:['手機上可以留言，會直接飛到大螢幕上。','想對同事說的、想對老闆說的，都可以寫。','留言會先經過審核，請大家口下留情。'],
+  quiz:['搶答時間！題目出現在大螢幕，手機上選答案。','答對而且越快，分數越高。','總分前三名，有加碼獎品。'],
+  rapid:['快問快答！每題都是二選一，幾秒內就要作答。','答對而且越快，分數越高。','準備好了嗎？第一題！'],
+  board:['來看看目前的積分排行！','前三名請準備上台領獎。','還沒上榜的人，下一個遊戲還有機會！'],
+  vote:['現在開放投票！','每人一票，手機上選你最喜歡的選項。','票數最高的，獎金加碼！'],
+  rain:['紅包雨要來了，請保持手機畫面亮著。','掉下來的紅包用手指點，點到就是你的！','搶最多的前三名，等一下有加碼小獎。'],
+  guess:['終極密碼！數字在 1 到 100 之間。','每猜一次範圍就縮小，猜中的人……要上台表演！','（猜中時）恭喜你，請上台！'],
+  tug:['接下來是拔河，比的是誰的手指最快！','依人數平均計算，人少的一組也有機會贏。','預備——開始！拇指不要停！'],
+  race:['請大家拿穩手機，用力搖！','搖得越快，你們這組的跑者衝得越快。','依人數平均計算，小組也有機會。'],
+  db:['乾杯時間到！每一組輪流乾杯、大聲喊出來。','我喊「乾杯」，你們回「發發發」！','分貝最高的一組，桌上加一瓶好酒！'],
+  bingo:['每個人手機上都有一張專屬賓果卡。','開出的號碼會自動圈起來，連成三條線就是賓果！','最先完成的前五位，都有獎品。'],
+  lottery:['抽獎從普獎開始，中獎的同仁請到台前領獎。','唸名字三次沒有出現，我們就現場重抽。','（老闆加碼時）讓我們謝謝總經理的大紅包！']
+};
+
+const KITS={
+wedding:{label:'婚禮',theme:'forest',teamWord:'桌次',groupWord:'親友團',checkinBy:'group',rainItem:'candy',network:false,
+  groups:['男方親友','女方親友','新郎同學','新娘同學','同事好友'],
+  palettes:[['blush','粉金交錯',['233,169,181','242,214,155']],['warm','暖白燭光',['255,236,200']],['mix','繽紛彩色',['233,169,181','205,181,124','150,190,240','150,210,170']]],
+  amounts:[6,8,16,20,52,66,99,520,1314],
+  L:{checked:'已報到',checkVerb:'報到',checkSub:'報到即可參加抽獎',ticker:'最新報到',lightsMsg:'祝福新人，百年好合',lightsOn:'全場點亮',lightsOff:'熄燈',lightsCount:'已點亮',
+     tugReady:'兩邊準備',tugGo:'開始！',tugUnit:'下',rainReady:'喜糖要來了',rainReadySub:'點到喜糖就是你的',rainOver:'喜糖雨結束',rainKing:'喜氣王',board:'搶喜糖排行',pop:'+',
+     dbCheer:'乾杯！',claim:'請到台前領獎',redraw:'不在現場，重新抽出'},
+  meta:'team',flag:['前任','分手','離婚'],
+  prizes:'捧花｜新娘手捧花｜1\n小禮物｜新人親選小禮｜8\n大獎｜雙人住宿券｜1',
+  quiz:'新郎和新娘是在哪裡認識的？\n大學社團\n*朋友介紹\n打工的地方\n交友軟體\n\n他們第一次約會吃了什麼？\n*火鍋\n義大利麵\n夜市小吃\n早午餐\n\n求婚是在哪一座城市？\n台北\n台中\n*高雄\n台東\n\n新娘最受不了新郎的哪個習慣？\n*襪子亂丟\n打電動到半夜\n吃飯很慢\n很愛講冷笑話',
+  rapid:{a:'新郎',b:'新娘',text:'誰先告白的？\n誰比較會賴床？\n誰比較會煮飯？\n吵架誰先道歉？\n家裡誰管錢？\n誰比較愛哭？'},
+  vote:{title:'猜猜新娘二進禮服的顏色？',text:'香檳金\n霧粉色\n湖水藍\n正紅色'},
+  msgs:['新婚快樂！','百年好合，永浴愛河','新娘今天超美','新郎要好好照顧她','早生貴子～','祝你們天天都像今天一樣開心','謝謝邀請，好感動','大學同學到此一遊','婚紗照好好看','要幸福喔！','希望前任不要來（笑）'],
+  names:{checkin:'賓客報到',lights:'手機燈海',danmaku:'祝福彈幕',quiz:'新人知多少',rapid:'默契快問快答',board:'積分排行榜',vote:'賓客投票',rain:'喜糖雨',guess:'終極密碼',tug:'男女方拔河',race:'親友團賽跑',db:'歡呼分貝計',bingo:'賓果大挑戰',lottery:'抽捧花・抽小禮'},
+  cue:{
+    checkin:['各位親友晚安！入座後請用手機掃描桌上的 QR code 報到。','報到完成就能參加等一下的抽捧花和小禮物。','目前到得最齊的是＿＿，其他親友團加油！'],
+    lights:['請大家拿出手機，按下「點亮」。','新人即將進場，讓我們用燈海迎接他們——','掌聲歡迎今天最美的新人！'],
+    danmaku:['想對新人說的話，現在就可以從手機送出。','祝福會飛過大螢幕，新人都看得到。','留言會先經過審核，請大家多多祝福。'],
+    quiz:['「新人知多少」開始！題目出現在大螢幕，用手機作答。','答對而且越快，分數越高。','最後積分最高的親友，有新人準備的小禮物！'],
+    rapid:['默契快問快答！新人背對背，手上拿著「新郎」「新娘」牌子。','每題 5 秒，大家先用手機猜新人會舉誰。','新人舉牌後公布答案，猜對的人得分！'],
+    board:['來看看目前誰最懂新人！','前三名請到台前，新人有小禮物。','還沒上榜的親友，下一個遊戲還有機會！'],
+    vote:['現在開放賓客投票，手機上選一個答案。','每人一票，結果即時出現在大螢幕。','等新娘換好禮服，我們就揭曉！'],
+    rain:['喜糖雨要來了，請保持手機畫面亮著。','點到喜糖就是你的！','搶最多的前三名，新人有小禮物送給你。'],
+    guess:['終極密碼！數字在 1 到 100 之間。','每猜一次範圍就縮小，猜中的人要上台跟新人合照！','（猜中時）恭喜你，請上台！'],
+    tug:['男方親友對上女方親友！比的是手指有多快。','依人數平均計算，人少的一方也有機會贏。','預備——開始！'],
+    race:['請大家拿穩手機，用力搖！','搖得越快，你們親友團的跑者衝得越快。','依人數平均，人少的親友團也不吃虧。'],
+    db:['敬酒時間到！每一區的親友輪流乾杯、大聲喊出來。','我喊「新婚」，你們回「快樂」！','分貝最高的一區，新人親自敬酒！'],
+    bingo:['每位賓客手機上都有一張專屬賓果卡。','開出的號碼會自動圈起來，連成三條線就是賓果！','最先完成的前五位都有獎品。'],
+    lottery:['接下來是大家最期待的抽捧花！','唸到名字的親友請到台前，唸三次沒出現就重抽。','（加碼時）謝謝新人父母加碼！']}
+},
+classic:{label:'尾牙・經典喜慶',theme:'lacquer',teamWord:'部門',groupWord:'部門',checkinBy:'group',rainItem:'envelope',network:false,
+  depts:[['業務部',58],['研發部',64],['生產部',52],['客服部',36],['行政部',30]],
+  palettes:[['gold','暖金',['228,183,94']],['red','紅金交錯',['207,58,47','242,214,155']],['mix','彩色',['98,194,154','228,183,94','207,58,47','150,170,240']]],
+  amounts:[6,8,66,88,168,188,288,666,888],
+  L:{checked:'已報到',checkVerb:'報到',checkSub:'報到即取得抽獎資格',ticker:'最新報到',lightsMsg:'這一年，辛苦大家了',lightsOn:'全場開燈',lightsOff:'熄燈',lightsCount:'已開燈',
+     tugReady:'兩隊準備',tugGo:'開始！',tugUnit:'下',rainReady:'準備搶紅包',rainReadySub:'手機畫面保持亮著',rainOver:'紅包雨結束',rainKing:'手氣王',board:'手氣排行',pop:'+',
+     dbCheer:'乾杯！',claim:'請上台領獎',redraw:'不在現場，名額釋出'},
+  meta:'id',flag:['主管','老闆','經理','加班','年終'],
+  prizes:'普獎｜超市禮券 2,000 元｜10\n三獎｜智慧手錶｜3\n二獎｜日本來回機票｜2\n頭獎｜現金 NT$66,666｜1',
+  quiz:'尾牙原本是在祭拜哪一位神明？\n媽祖\n*土地公\n關聖帝君\n灶神\n\n尾牙是在農曆的哪一天？\n十二月初二\n*十二月十六\n十二月二十三\n正月十五\n\n尾牙必吃的刈包，形狀象徵什麼？\n*包住財富\n步步高升\n年年有餘\n團團圓圓',
+  rapid:{a:'O',b:'X',text:'尾牙是在農曆十二月十六 = O\n刈包又叫虎咬豬 = O\n尾牙是一年中第一次祭拜土地公 = X\n公司今年營收創新高 = O\n總經理今晚會上台唱歌 = O'},
+  vote:{title:'最佳表演節目',text:'《發財舞》｜業務部\n《業績之歌》合唱｜研發部\n《辦公室日常》短劇｜生產部\n熱舞串燒｜客服部\n魔術秀｜行政部'},
+  msgs:['今年辛苦了！','謝謝行政部每次都幫忙訂便當','明年一起衝業績','研發部的大家最強','祝大家都抽到大獎','希望明年年終多一個月','主管今年也辛苦了','抽獎拜託抽到我','生產線的夥伴們讚啦','客服部是最溫柔的部門'],
+  names:{checkin:'入場報到',lights:'開場燈海',danmaku:'彈幕留言牆',quiz:'即時搶答',rapid:'是非快問快答',board:'積分排行榜',vote:'節目人氣投票',rain:'紅包雨',guess:'終極密碼',tug:'部門拔河',race:'搖一搖賽跑',db:'敬酒分貝',bingo:'賓果大挑戰',lottery:'摸彩抽獎'},
+  cue:{}
+},
+logistics:{label:'尾牙・物流運輸',theme:'road',teamWord:'站點',groupWord:'站點',checkinBy:'group',rainItem:'box',network:false,
+  depts:[['北區轉運站',66],['中區轉運站',54],['南區轉運站',58],['倉儲中心',44],['總公司',30]],
+  palettes:[['head','頭燈白＋方向燈橘',['255,244,214','255,150,40']],['safety','安全黃',['244,194,27']],['brake','煞車紅',['255,70,50']]],
+  amounts:[1,2,3,5,8,10,20,30,50],
+  L:{checked:'已打卡',checkVerb:'打卡',checkSub:'打卡即取得抽獎資格',ticker:'最新打卡',lightsMsg:'每一件包裹，都是大家一起送到的',lightsOn:'全場開車燈',lightsOff:'關燈',lightsCount:'已開燈',
+     tugReady:'兩站就位',tugGo:'發車！',tugUnit:'下',rainReady:'包裹即將落下',rainReadySub:'點到包裹就簽收',rainOver:'包裹雨結束',rainKing:'簽收王',board:'簽收排行',pop:'簽收 +',
+     dbCheer:'喊出口號！',claim:'請上台簽收',redraw:'未簽收，退件重抽'},
+  meta:'track',flag:['主管','老闆','經理','加班','年終'],
+  prizes:'普獎｜加油卡 1,000 元｜10\n三獎｜護腰按摩墊｜3\n二獎｜家庭露營組｜2\n頭獎｜現金 NT$88,888｜1',
+  quiz:'台灣最常見的 T11 棧板尺寸是？\n1000×1200 mm\n*1100×1100 mm\n1200×800 mm\n1140×1140 mm\n\n國道 3 號又稱為？\n中山高\n*福爾摩沙高速公路\n北宜高\n西濱快速道路\n\n物流的「最後一哩」指的是哪一段？\n海運段\n轉運站分揀\n*送到收件人手上的末端配送\n報關作業',
+  rapid:{a:'O',b:'X',text:'國道 3 號又叫福爾摩沙高速公路 = O\nT11 棧板是 1200×1000 mm = X\n最後一哩指的是末端配送 = O\n今年雙十一的單量是公司新高 = O'},
+  vote:{title:'最佳表演節目',text:'《使命必達》饒舌｜北區轉運站\n司機大哥合唱團｜中區轉運站\n《倉庫驚魂》短劇｜倉儲中心\n堆高機之舞｜南區轉運站\n站長變裝秀｜總公司'},
+  msgs:['今年送件平安最重要','南區轉運站讚啦','謝謝倉儲夥伴半夜理貨','明年雙十一不要爆單','司機大哥們辛苦了','希望明年油價降一點','主管說今年不加班（？）','使命必達！','北區的夥伴我們明年見','總公司的便當很好吃'],
+  names:{checkin:'出車打卡',lights:'車燈點亮',danmaku:'彈幕留言牆',quiz:'物流知識王',rapid:'是非快問快答',board:'積分排行榜',vote:'節目人氣投票',rain:'包裹雨',guess:'終極密碼',tug:'貨車拔河',race:'車隊衝線',db:'鳴笛分貝',bingo:'賓果大挑戰',lottery:'單號抽獎'},
+  cue:{checkin:['各位夥伴晚安！今天不用跑件，請掃桌上的 QR code 打卡上線。','打卡完成就有抽獎資格，件件必達、人人有獎！','目前到場率最高的是＿＿站，其他站點趕快到齊！'],
+    lights:['請大家打開手機，按下「開車燈」。','全場車燈一起亮——','歡迎總經理上台，帶我們回顧這一年送出的每一件包裹！'],
+    tug:['兩個站點對拉，比的是誰手速最快！','依人數平均計算，小站也不吃虧。','預備——發車！'],
+    rain:['包裹要從天上掉下來了，手機畫面保持亮著！','點到包裹就簽收，點數直接入帳。','簽收最多的前三名，有加碼獎品。'],
+    db:['各站輪流乾杯，喊出你們站的口號！','我喊「使命」，你們回「必達」！','分貝最高的站點，加菜一桌！'],
+    lottery:['抽獎從普獎開始，唸到託運單號的夥伴請上台簽收。','唸三次沒人簽收，就退件重抽。','（老闆加碼時）謝謝總經理加碼出貨！']}
+},
+tech:{label:'尾牙・科技產業',theme:'signal',teamWord:'部門',groupWord:'部門',checkinBy:'group',rainItem:'chip',network:true,
+  depts:[['研發一處',68],['研發二處',54],['製程整合',46],['產品行銷',40],['管理處',32]],
+  palettes:[['cyan','訊號藍',['90,209,255']],['duo','藍粉雙色',['90,209,255','255,79,123']],['mint','終端綠',['110,240,170']]],
+  amounts:[16,32,64,128,256,512,1024],
+  L:{checked:'已登入',checkVerb:'登入',checkSub:'登入即取得抽獎權限',ticker:'最新登入',lightsMsg:'謝謝每一位，讓系統穩穩跑完這一年',lightsOn:'全部節點上線',lightsOff:'離線',lightsCount:'在線節點',
+     tugReady:'Ready',tugGo:'Run！',tugUnit:'clicks',rainReady:'封包即將傳送',rainReadySub:'點擊下墜的封包即可攔截',rainOver:'封包雨結束',rainKing:'攔截王',board:'攔截排行',pop:'+',
+     dbCheer:'衝峰值！',claim:'請上台領獎',redraw:'未到場，重新產生亂數'},
+  meta:'seed',flag:['主管','老闆','經理','加班','年終'],
+  prizes:'普獎｜電商購物金 3,000 元｜10\n三獎｜平板電腦｜3\n二獎｜旅遊基金 NT$50,000｜2\n頭獎｜現金 NT$100,000｜1',
+  quiz:'1 Byte 等於幾個 bit？\n4\n*8\n16\n32\n\nHTTP 狀態碼 404 代表什麼？\n伺服器錯誤\n未授權\n*找不到資源\n重新導向\n\n主流 12 吋晶圓的直徑大約是？\n150 mm\n200 mm\n*300 mm\n450 mm',
+  rapid:{a:'O',b:'X',text:'1 Byte 等於 8 bit = O\nHTTP 404 代表伺服器錯誤 = X\n12 吋晶圓直徑約 300 mm = O\n今年的 bug 都修完了 = X'},
+  vote:{title:'最佳表演節目',text:'《Debug 之歌》｜研發一處\n機器人舞｜研發二處\n《需求又改了》短劇｜產品行銷\n研發樂團 Live｜製程整合\n管理處魔術秀｜管理處'},
+  msgs:['今年的 bug 都修完了嗎','研發一處 MVP','謝謝 IT 救了我的電腦','明年不要再半夜上 hotfix','deploy 平安','主管的 code review 好嚴格','年終多一個月 +1','Hello World！','製程整合的大家辛苦了','產品行銷的簡報好美'],
+  names:{checkin:'系統登入',lights:'節點上線',danmaku:'彈幕留言牆',quiz:'技術搶答',rapid:'是非快問快答',board:'積分排行榜',vote:'節目人氣投票',rain:'封包雨',guess:'二分搜尋',tug:'算力對決',race:'頻寬競速',db:'音量壓力測試',bingo:'賓果大挑戰',lottery:'亂數抽獎'},
+  cue:{checkin:['各位晚安！請掃桌上的 QR code 登入，今天不用寫 code。','登入成功就取得抽獎權限，沒登入就沒有 access。','目前登入率最高的是＿＿，其他部門的 bug 修好了嗎？'],
+    lights:['請打開手機，按下「上線」，讓你的手機成為一個節點。','全場節點連成一張網——','歡迎董事長上台！'],
+    tug:['算力對決！比的是每人點擊速率。','依人數平均，不靠人海戰術。','倒數 3、2、1——Run！'],
+    rain:['封包雨要開始了，請保持手機螢幕開啟。','點擊下墜的封包就能攔截點數。','攔截最多的前三名，有加碼獎品。'],
+    db:['壓力測試時間！各部門輪流乾杯，把音量衝到峰值。','我喊「上線」，你們回「不當機」！','峰值最高的部門，加一瓶好酒！'],
+    lottery:['抽獎全程亂數產生，從普獎開始，絕無人為操作。','唸三次沒出現，就重新產生亂數。','（老闆加碼時）感謝董事長追加預算！'],
+    guess:['二分搜尋挑戰！數字在 1 到 100 之間。','每猜一次範圍就縮小，工程師應該最會猜吧？','猜中的人，請上台表演！']}
+}};
+KITS.classic.groups=KITS.classic.depts.map(d=>d[0]);KITS.logistics.groups=KITS.logistics.depts.map(d=>d[0]);KITS.tech.groups=KITS.tech.depts.map(d=>d[0]);
+const kitOf=k=>KITS[k]||KITS.classic;
+const gameName=(kit,g)=>kitOf(kit).names[g]||GAME_META[g].label;
+function gameDefaults(game,kit){const k=kitOf(kit);
+  switch(game){case 'quiz':return{text:k.quiz,secs:10};case 'rapid':return{text:k.rapid.text,a:k.rapid.a,b:k.rapid.b,secs:5};
+    case 'vote':return{title:k.vote.title,text:k.vote.text,hide:false};case 'lottery':return{text:k.prizes};case 'guess':return{min:1,max:100};
+    case 'rain':return{secs:15};case 'board':return{mode:'person',n:10,title:'積分排行榜'};default:return{}}}
+
+/* ---------- 題目文字解析 ---------- */
+function parseQuiz(text){return String(text||'').split(/\n\s*\n/).map(b=>b.split('\n').map(s=>s.trim()).filter(Boolean)).filter(l=>l.length>=3).map(l=>{let ans=0;const opts=l.slice(1,5).map((o,i)=>{if(/^[*＊]/.test(o)){ans=i;return o.replace(/^[*＊]\s*/,'')}return o});return{q:l[0],opts,ans}})}
+function parseRapid(text,a,b){return String(text||'').split('\n').map(s=>s.trim()).filter(Boolean).map(l=>{const m=l.split(/\s*[=＝]\s*/);const ans=m[1]!=null?m[1].trim():'';return{q:m[0],preset:ans&&ans===String(a).trim()?0:ans&&ans===String(b).trim()?1:null}})}
+function parseOpts(text){return String(text||'').split('\n').map(s=>s.trim()).filter(Boolean).map(l=>{const p=l.split(/\s*[|｜]\s*/);return{label:p[0],sub:p[1]||''}})}
+function parsePrizes(text){return String(text||'').split('\n').map(s=>s.trim()).filter(Boolean).map(l=>{const p=l.split(/\s*[|｜]\s*/);return{name:p[0]||'獎項',item:p[1]||'',total:Math.max(1,parseInt(p[2],10)||1)}})}
+
+/* ================= 遊戲畫面（投影與監看共用） ================= */
+const gTop=(name,right)=>`<div class="g-top"><b>${esc(name||'')}</b><span>${right||''}</span></div>`;
+const SV=tpl=>(el,v,env,role)=>{let last='';const h={update(nv){const s=tpl(nv||{},env,role);if(s!==last){last=s;el.innerHTML=s}}};h.update(v);return h};
+const OPT_C=['#e5484d','#3e8ed0','#e8a33d','#3fae6a'];
+function boardRows(rows,unit){if(!rows||!rows.length)return '<div class="bd-empty">還沒有人得分</div>';const max=Math.max(1,...rows.map(r=>r.score));
+  return `<ol class="bd-list">${rows.map((r,i)=>`<li class="r${i+1}"><em>${i+1}</em><span>${esc(r.name)}${r.sub?`<small>${esc(r.sub)}</small>`:''}</span><i><b style="width:${r.score/max*100}%"></b></i><strong>${fmtN(r.score)}${unit||''}</strong></li>`).join('')}</ol>`}
+function fitCanvas(cv,el){const d=Math.min(2,devicePixelRatio||1);const w=Math.max(2,Math.round(el.clientWidth*d)),h=Math.max(2,Math.round(el.clientHeight*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;return true}return false}
+function drawItem(ctx,e,kind){const s=e.s;ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.rot);
+  if(kind==='box'){ctx.fillStyle='#b9824b';ctx.fillRect(-s*.6,-s*.5,s*1.2,s);ctx.fillStyle='#e8d2a6';ctx.fillRect(-s*.1,-s*.5,s*.2,s);ctx.fillStyle='#f6f2ea';ctx.fillRect(s*.15,s*.05,s*.38,s*.3);ctx.fillStyle='#16181a';for(let i=0;i<4;i++)ctx.fillRect(s*.19+i*s*.08,s*.12,s*.03,s*.16)}
+  else if(kind==='chip'){ctx.fillStyle='#14203a';ctx.strokeStyle='#5ad1ff';ctx.lineWidth=Math.max(1,s*.05);ctx.fillRect(-s/2,-s/2,s,s);ctx.strokeRect(-s/2,-s/2,s,s);ctx.beginPath();for(let i=-1;i<=1;i++){const p=i*s*.25;ctx.moveTo(-s*.75,p);ctx.lineTo(-s/2,p);ctx.moveTo(s/2,p);ctx.lineTo(s*.75,p);ctx.moveTo(p,-s*.75);ctx.lineTo(p,-s/2);ctx.moveTo(p,s/2);ctx.lineTo(p,s*.75)}ctx.stroke();ctx.fillStyle='#5ad1ff';ctx.fillRect(-s*.18,-s*.18,s*.36,s*.36)}
+  else if(kind==='candy'){const c=e.c<.5?'#e9a9b5':'#cdb57c';ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-s*.45,0);ctx.lineTo(-s*.9,-s*.3);ctx.lineTo(-s*.9,s*.3);ctx.closePath();ctx.moveTo(s*.45,0);ctx.lineTo(s*.9,-s*.3);ctx.lineTo(s*.9,s*.3);ctx.closePath();ctx.fill();ctx.beginPath();ctx.ellipse(0,0,s*.5,s*.36,0,0,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(-s*.12,-s*.36,s*.1,s*.72)}
+  else{ctx.fillStyle='#cf3a2f';ctx.fillRect(-s/2,-s*.7,s,s*1.4);ctx.fillStyle='#a92a22';ctx.beginPath();ctx.moveTo(-s/2,-s*.7);ctx.lineTo(0,-s*.25);ctx.lineTo(s/2,-s*.7);ctx.fill();ctx.fillStyle='#e4b75e';ctx.beginPath();ctx.arc(0,-s*.22,s*.2,0,Math.PI*2);ctx.fill()}
+  ctx.restore()}
+
+const GV={
+checkin:SV(v=>`${gTop(v.name,'')}<div class="g-body"><div class="ci"><div><div class="g-eye">${esc(v.label)}</div><div class="g-big">${v.count||0}<small>/ ${v.total||0} 人</small></div><div class="g-sub">到場率 ${v.total?Math.round(v.count/v.total*100):0}%・${esc(v.sub)}</div>${v.ticker?`<div class="ci-tk">${esc(v.tickLabel)}：${esc(v.ticker)}</div>`:''}</div><div class="ci-bars">${(v.rows||[]).map(r=>`<div class="ci-row${r.lead?' lead':''}"><span>${esc(r.name)}</span><i><b style="width:${Math.round(r.r*100)}%"></b></i><em>${Math.round(r.r*100)}%</em></div>`).join('')}</div></div></div>`),
+
+lights(el,v,env,role){
+  el.innerHTML=`<canvas></canvas>${gTop('','')}<div class="lt-msg"></div>`;
+  const cv=$('canvas',el),ctx=cv.getContext('2d');let V=v,pts=null;
+  function setup(){const W=cv.width,H=cv.height,cols=24,rows=10,r=srand(11);pts=[];
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)pts.push({gx:x,gy:y,x:(x+.5+(r()-.5)*.7)/cols*W,y:H*.3+(y+.5+(r()-.5)*.6)/rows*H*.58,ph:r()*6.28,c:r()});
+    shuffle(pts.map((p,i)=>i),r).forEach((pi,rank)=>pts[pi].rank=rank)}
+  function frame(t){if(!el.isConnected)return;if(fitCanvas(cv,el)||!pts)setup();const W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);
+    const now=Date.now();let f=0;if(V.on)f=clamp((now-V.at)/4000,0,1);else if(V.at)f=1-clamp((now-V.at)/1000,0,1);
+    const total=V.total||0,lit=Math.round(f*total),k=Math.round(f*pts.length);const pal=V.pal&&V.pal.length?V.pal:['255,236,200'];const col=p=>pal[Math.floor(p.c*pal.length)%pal.length];
+    if(V.net){ctx.lineWidth=Math.max(1,W*.0012);for(const p of pts){if(p.rank>=k)continue;for(const q of pts){if(q.rank<k&&((q.gx===p.gx+1&&q.gy===p.gy)||(q.gy===p.gy+1&&q.gx===p.gx))){ctx.strokeStyle=`rgba(${col(p)},.3)`;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()}}}}
+    for(const p of pts){const on=p.rank<k,tw=.65+.35*Math.sin((t||0)/500+p.ph),rad=W*(on?.007:.003);
+      if(on){const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,rad*4);g.addColorStop(0,`rgba(${col(p)},${.55*tw})`);g.addColorStop(1,`rgba(${col(p)},0)`);ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,rad*4,0,6.29);ctx.fill()}
+      ctx.fillStyle=on?`rgba(${col(p)},${tw})`:'rgba(255,255,255,.08)';ctx.beginPath();ctx.arc(p.x,p.y,rad,0,6.29);ctx.fill()}
+    $('.g-top span',el).textContent=`${V.countLabel||''} ${lit} / ${total}`;
+    if(role!=='thumb')requestAnimationFrame(frame)}
+  const h={update(nv){V=nv||{};$('.g-top b',el).textContent=V.name||'';$('.lt-msg',el).textContent=V.msg||''}};h.update(v);requestAnimationFrame(frame);return h},
+
+danmaku(el,v,env,role){
+  el.innerHTML=`${gTop('','')}<div class="dm-layer"></div><div class="dm-pin" hidden></div>`;
+  const layer=$('.dm-layer',el),seen=new Set(),born=Date.now();
+  function spawn(m){const d=document.createElement('div');d.className='dm';d.style.top=(3+Math.floor(Math.random()*8)*11.5)+'%';d.style.animationDuration=(8+Math.random()*3)+'s';d.innerHTML=`<b>${esc(m.who)}</b>${esc(m.text)}`;d.addEventListener('animationend',()=>d.remove());layer.appendChild(d)}
+  const h={update(nv){const V=nv||{};$('.g-top b',el).textContent=V.name||'';$('.g-top span',el).textContent=V.count?`已上牆 ${V.count} 則`:'';const pin=$('.dm-pin',el);pin.hidden=!V.pin;pin.textContent=V.pin||'';
+    const items=V.items||[];
+    if(role==='thumb'){layer.innerHTML=`<div class="dm-static">${items.slice(-4).map(m=>`<div><b>${esc(m.who)}</b>${esc(m.text)}</div>`).join('')||'<div style="opacity:.5">留言會從右邊飛過畫面</div>'}</div>`;return}
+    items.forEach(m=>{if(seen.has(m.id))return;seen.add(m.id);if(m.ts>=born-1500)spawn(m)})}};
+  h.update(v);return h},
+
+quiz:SV(v=>{
+  if(v.phase==='board')return `${gTop(v.name,'目前排行')}<div class="g-body bd"><div class="g-title">誰最會答？</div>${boardRows(v.top,' 分')}</div>`;
+  const rev=v.phase==='reveal',tot=(v.counts||[]).reduce((a,b)=>a+b,0)||1;
+  const status=v.phase==='idle'?'準備作答':v.phase==='open'?`已作答 ${v.answered} / ${v.total}`:v.phase==='closed'?'作答結束，等待公布答案':`最快答對：${v.fast&&v.fast.length?v.fast.map(esc).join('、'):'沒有人答對'}`;
+  return `${gTop(v.name,v.n?`第 ${v.qi+1} 題・共 ${v.n} 題`:'')}<div class="g-body qz"><div class="qz-q">${esc(v.q)}</div><div class="qz-opts">${(v.opts||[]).map((o,i)=>{const p=rev?Math.round((v.counts[i]||0)/tot*100):0;
+    return `<div class="qz-o${rev?(i===v.ans?' right':' dim'):''}" style="--oc:${OPT_C[i]}"><i style="width:${p}%"></i><em>${'ABCD'[i]}</em><span>${esc(o)}</span>${rev?`<b>${p}%</b>`:''}</div>`}).join('')}</div>
+    <div class="qz-foot"><span>${status}</span>${v.phase==='open'?`<span class="g-clock">${v.t}</span>`:''}</div></div>`}),
+
+rapid:SV(v=>{if(v.phase==='board')return `${gTop(v.name,'目前排行')}<div class="g-body bd"><div class="g-title">誰最有默契？</div>${boardRows(v.top,' 分')}</div>`;const rev=v.phase==='reveal',c=v.counts||[0,0],tot=(c[0]+c[1])||1;
+  const side=(i,l)=>`<div class="rp-side s${i}${rev?(v.correct===i?' right':' dim'):''}"><b>${esc(l)}</b>${rev?`<em>${Math.round(c[i]/tot*100)}%</em>`:''}</div>`;
+  const status=v.phase==='idle'?'準備作答':v.phase==='open'?`快選！已作答 ${v.answered} / ${v.total}`:v.phase==='closed'?'作答結束，等待公布答案':`答對 ${c[v.correct]||0} 人`;
+  return `${gTop(v.name,v.n?`第 ${v.qi+1} 題・共 ${v.n} 題`:'')}<div class="g-body"><div class="rp-q">${esc(v.q)}</div><div class="rp-vs">${side(0,v.a)}<div class="rp-mid">${v.phase==='open'?`<span class="g-clock big">${v.t}</span>`:'VS'}</div>${side(1,v.b)}</div>
+    <div class="qz-foot"><span>${status}</span>${rev&&v.top&&v.top.length?`<span>目前領先：${v.top.slice(0,3).map(p=>esc(p.name)).join('、')}</span>`:''}</div></div>`}),
+
+board:SV(v=>`${gTop(v.name,v.mode==='team'?`${esc(v.teamWord)}平均分`:'個人總分')}<div class="g-body bd"><div class="g-title">${esc(v.title||v.name)}</div>${boardRows(v.rows,v.mode==='team'?'':' 分')}</div>`),
+
+vote:SV(v=>{const opts=v.opts||[],show=!v.hide||v.done,max=Math.max(1,...opts.map(o=>o.n));const order=opts.map((o,i)=>i);if(show&&v.total)order.sort((a,b)=>opts[b].n-opts[a].n);
+  return `${gTop(v.name,`${v.total||0} / ${v.voters||0} 票`)}<div class="g-body"><div class="g-title">${esc(v.title)}</div><div class="vt-list">${order.map((i,r)=>{const o=opts[i];return `<div class="vt-row${show&&r===0&&v.total?' first':''}"><span>${esc(o.label)}${o.sub?`<small>${esc(o.sub)}</small>`:''}</span><i><b style="width:${show?o.n/max*100:0}%"></b></i><em>${show?o.n:'?'}</em></div>`}).join('')}</div>
+    <div class="g-banner">${v.done&&v.total?'最高票：'+esc(opts[order[0]].label):v.open?'投票進行中':'即將開放投票'}</div></div>`}),
+
+tug:SV(v=>`${gTop(v.name,'')}<div class="g-body"><div class="tg"><div class="tg-teams"><div class="tg-t">${esc(v.an)}<small>到場 ${v.ac} 人</small></div><div class="g-clock big">${v.t}</div><div class="tg-t b">${esc(v.bn)}<small>到場 ${v.bc} 人</small></div></div>
+  <div class="rope"><span class="mid"></span><span class="knot" style="left:${v.pos}%"></span></div><div class="tg-score"><span>${esc(v.sa)}</span><span>${esc(v.sb)}</span></div><div class="g-banner">${esc(v.banner)}</div></div></div>`),
+
+race:SV(v=>`${gTop(v.name,`<span class="mono">${((v.ms||0)/1000).toFixed(1)} 秒</span>`)}<div class="g-body"><div class="rc">${(v.lanes||[]).map(l=>`<div class="rc-lane"><span>${esc(l.name)}${l.place?`<b>#${l.place}</b>`:''}</span><div class="rc-track"><i class="racer" style="left:${2+Math.min(100,l.pos)*.94}%"></i></div></div>`).join('')}</div><div class="g-banner">${esc(v.banner)}</div></div>`),
+
+db:SV(v=>{const N=28,n=Math.round((v.level||0)*N);return `${gTop(v.name,v.mic?'麥克風收音中':'')}<div class="g-body"><div class="g-eye">${esc(v.team)} ${esc(v.cheer)}</div><div class="g-big">${v.db||0}<small> dB</small></div><div class="meter">${Array.from({length:N},(_,i)=>`<i class="${i<n?(i>N*.78?'on hot':'on'):''}" style="height:${30+i/N*70}%"></i>`).join('')}</div>
+  <div class="g-sub">本輪最高 ${v.peak||'—'}${v.records&&v.records.length?`　｜　${v.records.slice(0,3).map((r,i)=>`${i+1}. ${esc(r.name)} ${r.db}`).join('　')}`:''}</div></div>`}),
+
+rain(el,v,env,role){
+  el.innerHTML=`<canvas></canvas>${gTop('','')}<div class="rn-board"><h4></h4><ol></ol></div><div class="rn-center"></div>`;
+  const cv=$('canvas',el),ctx=cv.getContext('2d');let V=v||{},items=[],pops=[];const seen=new Set();
+  function frame(){if(!el.isConnected)return;fitCanvas(cv,el);const W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);
+    if(V.running&&Math.random()<.5)items.push({x:Math.random()*W,y:-40,vy:(1.2+Math.random()*1.8)*(W/900),rot:Math.random()*.6-.3,vr:(Math.random()-.5)*.02,s:W*(.026+Math.random()*.012),c:Math.random()});
+    items=items.filter(e=>e.y<H+60);for(const e of items){e.y+=e.vy*3;e.rot+=e.vr;drawItem(ctx,e,V.item)}
+    pops=pops.filter(p=>p.a>0);ctx.textAlign='center';ctx.font=`700 ${W*.018}px "Noto Sans TC",sans-serif`;for(const p of pops){p.y-=H*.002;p.a-=.015;ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle='#fff3cf';ctx.fillText(p.t,p.x,p.y)}ctx.globalAlpha=1;
+    if(V.running){const s=Math.max(0,Math.ceil((V.endAt-Date.now())/1000));const c=$('.g-top span',el);if(c.textContent!==String(s))c.textContent=s}
+    if(role!=='thumb')requestAnimationFrame(frame)}
+  const h={update(nv){V=nv||{};const L=V.L||{};$('.g-top b',el).textContent=V.name||'';$('.g-top span',el).textContent=V.running?'':'';
+    $('.rn-board h4',el).textContent=L.board||'';$('.rn-board ol',el).innerHTML=(V.top||[]).map(r=>`<li>${esc(r.name)}<b>${fmtN(r.amt)}</b></li>`).join('')||'<li style="list-style:none;opacity:.6">等待開始</li>';
+    const c=$('.rn-center',el);c.hidden=!!V.running;
+    c.innerHTML=V.done?`<div class="g-eye">${esc(L.over)}</div><div class="g-title" style="font-size:5cqw">${esc(L.king)}：${esc(V.king&&V.king[0]||'—')}</div><div class="g-sub">第二名 ${esc(V.king&&V.king[1]||'—')}・第三名 ${esc(V.king&&V.king[2]||'—')}</div>`
+      :`<div class="g-eye">${esc(V.name)}</div><div class="g-title" style="font-size:5.6cqw">${esc(L.ready)}</div><div class="g-sub">${esc(L.readySub)}</div>`;
+    const W=cv.width||1000,H=cv.height||560;(V.pops||[]).forEach(p=>{if(seen.has(p.id))return;seen.add(p.id);if(role!=='thumb'&&V.running)pops.push({x:W*(.12+p.x*.6),y:H*(.35+((p.id*37)%40)/100),a:1,t:`${p.name} ${L.pop||'+'}${p.amt}`})})}};
+  h.update(v);requestAnimationFrame(frame);return h},
+
+guess:SV(v=>v.done?`${gTop(v.name,'')}<div class="g-body"><div class="g-eye">爆了！密碼就是</div><div class="gs-boom">${v.done.secret}</div><div class="g-title">${esc(v.done.name)}・${esc(v.done.team)}</div><div class="g-sub">請上台！</div></div>`
+  :`${gTop(v.name,'')}<div class="g-body"><div class="g-eye">密碼在這個範圍之間</div><div class="gs-range">${v.lo}<em>～</em>${v.hi}</div><div class="gs-bar"><i style="left:${(v.lo-v.min)/(v.max-v.min+1)*100}%;width:${(v.hi-v.lo+1)/(v.max-v.min+1)*100}%"></i></div><div class="g-banner" style="font-size:2.6cqw">${v.last?`${esc(v.last.who)} 猜 ${v.last.n}，${v.last.n>v.hi?'太大了！':'太小了！'}`:'第一位，請出題！'}</div></div>`),
+
+bingo:SV(v=>{const set=new Set(v.drawn||[]),L='BINGO',last=v.last;let b='';for(let r=0;r<5;r++){b+=`<span class="l">${L[r]}</span>`;for(let i=1;i<=15;i++){const n=r*15+i;b+=`<span class="${set.has(n)?'on':''}">${n}</span>`}}
+  return `${gTop(v.name,`已開出 ${(v.drawn||[]).length} / 75`)}<div class="g-body"><div class="bg"><div class="ball">${last?`<small>${L[Math.floor((last-1)/15)]}</small><b>${last}</b>`:'<small>BINGO</small><b>?</b>'}</div><div class="bboard">${b}</div></div>
+    <div class="bstats"><span>一條線<b>${v.c1||0}</b></span><span>兩條線（聽牌）<b>${v.c2||0}</b></span><span class="win">賓果<b>${(v.win||[]).length}</b></span></div>${v.win&&v.win.length?`<div class="g-sub">賓果：${v.win.slice(0,5).map(esc).join('、')}</div>`:''}</div>`}),
+
+lottery(el,v,env,role){let timer=0,i=0;
+  const h={update(nv){const V=nv||{},p=V.prize||{};
+    el.innerHTML=`${gTop(V.name,`抽獎池 ${V.pool||0} 人`)}<div class="g-body"><div class="g-eye">${esc(p.name||'')}・剩 ${p.left||0} / ${p.total||0} 名</div><div class="lt-prize">${esc(p.item||'')}</div><div class="roll${V.win?' won':''}">${V.win?esc(V.win.name):V.rolling?'':esc(V.note||'準備抽獎')}</div><div class="lt-meta">${V.win?esc(V.win.meta)+'　'+esc(V.win.claim):''}</div><div class="won-strip">${(V.strip||[]).map(w=>`<span class="${w.absent?'absent':''}">${esc(w.name)}</span>`).join('')}</div></div>`;
+    clearInterval(timer);if(V.rolling&&V.roll&&V.roll.length&&role!=='thumb'){const r=$('.roll',el),m=$('.lt-meta',el);timer=setInterval(()=>{if(!el.isConnected){clearInterval(timer);return}const x=V.roll[i++%V.roll.length];r.textContent=x[0];m.textContent=x[1]},55)}}};
+  h.update(v);return h}
+};
+
+/* ================= 畫面渲染 ================= */
+function renderScene(sc,o){
+  const env=o.env||DEFAULT_ENV;
+  const el=document.createElement('div');el.className='scene s-'+sc.type;themeVars(el,env.theme||THEMES.lacquer);
+  const out=o.role==='output',thumb=o.role==='thumb',live=out||o.role==='program';
+  const empty=(t,h)=>out?'':`<div class="s-empty"><b>${esc(t)}</b>${h?`<span>${esc(h)}</span>`:''}</div>`;
+  const missingNote=id=>{const m=env.media&&env.media[id];return empty('找不到素材',m?m.name+'：請在場次設定重新連結':'請重新選擇檔案')};
+  switch(sc.type){
+    case 'black':break;
+    case 'logo':{el.classList.add('s-deco');const u=urlOf(env.logo);el.innerHTML=`<div class="s-center s-logo">${u?`<img src="${u}" alt="">`:`<div class="s-logo-text">${esc(env.logoText||'')}</div>`}</div>`;break}
+    case 'title':{el.classList.add('s-deco');const u=urlOf(sc.bg);
+      el.innerHTML=(u?`<img class="s-bgimg" src="${u}" alt=""><div class="s-dim" style="opacity:${+sc.dim||0}"></div>`:'')+
+        `<div class="s-center">${sc.eyebrow?`<div class="s-eyebrow">${esc(sc.eyebrow)}</div>`:''}<div class="s-title">${esc(sc.title).replace(/\n/g,'<br>')}</div>${sc.sub?`<div class="s-rule"></div><div class="s-sub">${esc(sc.sub)}</div>`:''}</div>`;break}
+    case 'countdown':{el.classList.add('s-deco');
+      el.innerHTML=`<div class="s-center">${sc.title?`<div class="s-eyebrow">${esc(sc.title)}</div>`:''}<div class="s-clock" data-cd data-mode="${esc(sc.mode)}" data-min="${+sc.minutes||0}" data-until="${esc(sc.until||'')}" data-start="${live?o.startedAt||0:0}" data-end="${sc.endText?1:0}">--:--</div><div class="s-endtext s-title">${esc(sc.endText||'')}</div></div>`;break}
+    case 'image':{if(!sc.media){el.innerHTML=empty('尚未選擇圖片','在畫面設定中上傳');break}const u=urlOf(sc.media);el.innerHTML=u?`<img class="s-media${sc.fit==='cover'?' cover':''}" src="${u}" alt="">`:missingNote(sc.media);break}
+    case 'slideshow':{const us=(sc.images||[]).map(urlOf).filter(Boolean);
+      if(!us.length){el.innerHTML=(sc.images||[]).length?missingNote(sc.images[0]):empty('尚未加入照片','在畫面設定中加入多張圖片');break}
+      el.innerHTML=`<div class="s-ss" data-ss data-iv="${+sc.iv||6}" data-start="${thumb?0:o.startedAt||0}">${us.map((u,i)=>`<img class="${sc.fit==='contain'?'contain':''}${i===0?' on':''}" src="${u}" alt="">`).join('')}</div>${sc.caption?`<div class="s-cap">${esc(sc.caption)}</div>`:''}`;break}
+    case 'video':{if(!sc.media){el.innerHTML=empty('尚未選擇影片','在畫面設定中上傳 MP4');break}const u=urlOf(sc.media);if(!u){el.innerHTML=missingNote(sc.media);break}
+      const v=document.createElement('video');v.className='s-media';v.playsInline=true;v.preload=thumb?'metadata':'auto';
+      if(!out){v.muted=true;v.setAttribute('muted','')}v.src=thumb?u+'#t=1':u;el.appendChild(v);break}
+    case 'web':{if(!sc.url){el.innerHTML=empty('尚未設定網址','在畫面設定中輸入網址');break}
+      if(thumb||o.role==='program'){el.innerHTML=`<div class="s-empty web"><b>${o.role==='program'?'網頁播出中':'網頁'}</b><span>${esc(sc.url)}</span>${o.role==='program'?'<span>內容在投影視窗中獨立執行</span>':''}</div>`;break}
+      const f=document.createElement('iframe');f.className='s-frame'+(out?'':' scaled');f.src=sc.url;f.setAttribute('allow','autoplay; fullscreen; microphone');if(!out)f.tabIndex=-1;el.appendChild(f);break}
+    case 'game':{el.classList.add('s-game','k-'+(env.kit||'classic'));el.dataset.sid=sc.id;const f=GV[sc.game];if(f)el._g=f(el,Object.assign({name:sc.name},o.vs||{}),env,o.role);break}
+  }
+  return el;
+}
+function cdCalc(n,now){let ms;
+  if(n.dataset.mode==='until'){const p=(n.dataset.until||'').split(':').map(Number);if(p.length<2||isNaN(p[0]))return{done:false,txt:'--:--'};const d=new Date(now);d.setHours(p[0],p[1],0,0);ms=d-now}
+  else{const total=(+n.dataset.min||0)*60000,st=+n.dataset.start||0;ms=st?total-(now-st):total}
+  if(ms<=0)return{done:true,txt:'00:00'};return{done:false,txt:fmtT(Math.ceil(ms/1000))}}
+function tickScenes(){const now=Date.now();
+  $$('[data-cd]').forEach(n=>{const r=cdCalc(n,now);if(n.textContent!==r.txt)n.textContent=r.txt;const sc=n.closest('.scene');if(sc)sc.classList.toggle('done',r.done&&n.dataset.end==='1')});
+  $$('[data-ss]').forEach(n=>{const imgs=n.children;if(!imgs.length)return;const st=+n.dataset.start,iv=(+n.dataset.iv||6)*1000;const i=st?Math.floor((now-st)/iv)%imgs.length:0;for(let k=0;k<imgs.length;k++)imgs[k].classList.toggle('on',k===i)})}
+setInterval(tickScenes,250);
+function kill(n){n.querySelectorAll('video').forEach(v=>{try{v.pause();v.removeAttribute('src');v.load()}catch(e){}});n.remove()}
+function mount(screen,el,tr){const olds=$$(':scope>.scene',screen);if(!el){olds.forEach(kill);return}
+  const ms=tr&&tr.type==='fade'?+tr.ms||0:0;
+  if(ms>0){el.classList.add('fx');el.style.setProperty('--ms',ms+'ms');screen.appendChild(el);el.getBoundingClientRect();el.classList.add('in');setTimeout(()=>olds.forEach(n=>n.isConnected&&kill(n)),ms+80)}
+  else{screen.appendChild(el);olds.forEach(kill)}
+  tickScenes()}
+function updateGameEls(root,id,vs){$$(`.scene[data-sid="${id}"]`,root).forEach(el=>{if(el._g)el._g.update(Object.assign({name:vs.name},vs))})}
+
+const ch='BroadcastChannel' in window?new BroadcastChannel('amei-director'):null;
+const send=m=>{try{if(ch)ch.postMessage(m)}catch(e){console.warn('send',e)}};
+
+if(IS_OUT)initOutput();else initDirector();
+
+/* =====================================================================
+   投影輸出視窗
+   ===================================================================== */
+function initOutput(){
+  const O={env:DEFAULT_ENV,cfg:{duck:true,duckLevel:.25,master:.7,sfxVol:1,mode:'loop'},scene:null,startedAt:0,vs:null,unlocked:false,video:null,seq:0};
+  const B={el:new Audio(),list:[],index:-1,g:0,fadingOut:false};B.el.preload='auto';
+  const sfxOn=new Set();
+  const screenEl=$('#outScreen');
+
+  openDB().catch(()=>{}).then(()=>{send({t:'hello'})});
+
+  async function program(scene,startedAt,tr,env,vs){
+    if(env)O.env=env;
+    const seq=++O.seq;O.scene=scene;O.startedAt=startedAt||0;if(vs!==undefined)O.vs=vs;
+    if(db)await ensure(sceneIds(scene).concat([O.env.logo]));
+    if(seq!==O.seq)return;
+    const el=scene?renderScene(scene,{role:'output',startedAt,env:O.env,vs:O.vs}):null;
+    mount(screenEl,el,tr||{type:'cut'});
+    O.video=null;
+    const v=el&&el.querySelector('video');
+    if(v){O.video=v;v.volume=clamp(scene.volume==null?1:+scene.volume,0,1);v.loop=scene.end==='loop';
+      v.addEventListener('ended',()=>send({t:'video-ended',id:scene.id}));
+      if(scene.autoplay!==false)v.play().catch(()=>{});}
+  }
+  async function bgmLoad(i){const it=B.list[i];if(!it)return false;const u=await loadURL(it.id);if(!u)return false;B.index=i;B.el.src=u;B.el.loop=O.cfg.mode==='one';return true}
+  async function bgmPlay(i){
+    if(!B.list.length)return;
+    const want=i==null?(B.index<0?0:B.index):i;
+    if(want!==B.index||!B.el.getAttribute('src')){B.g=0;if(!(await bgmLoad(want)))return}
+    if(B.el.paused)B.g=Math.min(B.g,.0001);
+    B.fadingOut=false;B.el.play().catch(()=>{});
+  }
+  B.el.addEventListener('ended',()=>{if(!B.list.length)return;if(O.cfg.mode==='loop')bgmPlay((B.index+1)%B.list.length);else if(O.cfg.mode==='list'&&B.index<B.list.length-1)bgmPlay(B.index+1)});
+  setInterval(()=>{
+    const v=O.video;const ducked=O.cfg.duck&&v&&!v.paused&&!v.muted&&v.volume>0;
+    const want=B.fadingOut?0:O.cfg.master*(ducked?O.cfg.duckLevel:1);
+    B.g+=clamp(want-B.g,-.03,.03);B.el.volume=clamp(B.g,0,1);
+    if(B.fadingOut&&B.g<=.001){B.el.pause();B.fadingOut=false}
+  },50);
+  function setList(list){const cur=B.list[B.index]&&B.list[B.index].id;B.list=list||[];B.index=cur?B.list.findIndex(x=>x.id===cur):-1;if(B.index<0&&cur&&B.el.paused){B.el.removeAttribute('src')}}
+  async function sfx(id){const u=await loadURL(id);if(!u)return;const a=new Audio(u);a.volume=clamp(O.cfg.sfxVol,0,1);sfxOn.add(a);a.onended=()=>sfxOn.delete(a);a.play().catch(()=>{})}
+
+  if(ch)ch.onmessage=e=>{const m=e.data||{};
+    switch(m.t){
+      case 'program':program(m.scene,m.startedAt,m.tr,m.env,m.vs);break;
+      case 'sync':if(m.cfg)Object.assign(O.cfg,m.cfg);setList(m.list);program(m.scene,m.startedAt,{type:'cut'},m.env,m.vs);break;
+      case 'env':O.env=m.env;if(O.scene&&O.scene.type!=='video'&&O.scene.type!=='web')program(O.scene,O.startedAt,{type:'cut'});break;
+      case 'game':if(O.scene&&O.scene.id===m.id){O.vs=m.vs;updateGameEls(screenEl,m.id,m.vs)}break;
+      case 'cfg':Object.assign(O.cfg,m.cfg);B.el.loop=O.cfg.mode==='one';break;
+      case 'video':{const v=O.video;if(!v)break;
+        if(m.op==='play')v.play().catch(()=>{});else if(m.op==='pause')v.pause();
+        else if(m.op==='restart'){v.currentTime=0;v.play().catch(()=>{})}
+        else if(m.op==='seek')v.currentTime=clamp(+m.v||0,0,v.duration||0);
+        else if(m.op==='vol')v.volume=clamp(+m.v,0,1);break}
+      case 'bgm':
+        if(m.op==='list')setList(m.list);
+        else if(m.op==='play')bgmPlay(m.index);
+        else if(m.op==='pause'){B.el.pause();B.fadingOut=false}
+        else if(m.op==='fadeout')B.fadingOut=true;
+        else if(m.op==='next'&&B.list.length)bgmPlay((B.index+1)%B.list.length);
+        else if(m.op==='prev'&&B.list.length){if(B.el.currentTime>3){B.el.currentTime=0}else bgmPlay((B.index-1+B.list.length)%B.list.length)}
+        break;
+      case 'sfx':sfx(m.id);break;
+      case 'sfx-stop':sfxOn.forEach(a=>a.pause());sfxOn.clear();break;
+      case 'who':send({t:'state',scene:O.scene,startedAt:O.startedAt});break;
+    }};
+
+  setInterval(()=>{const v=O.video,it=B.list[B.index];
+    send({t:'status',ready:O.unlocked,fs:!!document.fullscreenElement,w:Math.round(innerWidth*devicePixelRatio),h:Math.round(innerHeight*devicePixelRatio),
+      pgmId:O.scene&&O.scene.id,video:v?{t:v.currentTime,d:v.duration||0,paused:v.paused,vol:v.volume}:null,
+      bgm:{index:B.index,id:it?it.id:null,t:B.el.currentTime||0,d:B.el.duration||0,playing:!B.el.paused,fading:B.fadingOut}})},250);
+  addEventListener('pagehide',()=>send({t:'bye'}));
+
+  const toggleFS=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else document.documentElement.requestFullscreen().catch(()=>{})};
+  $('#outGate').addEventListener('click',()=>{O.unlocked=true;$('#outGate').hidden=true;document.documentElement.requestFullscreen().catch(()=>{});
+    if(O.video&&O.scene&&O.scene.autoplay!==false&&O.video.paused)O.video.play().catch(()=>{});});
+  addEventListener('dblclick',()=>{if(O.unlocked)toggleFS()});
+  addEventListener('keydown',e=>{if(e.key==='f'||e.key==='F'){O.unlocked=true;$('#outGate').hidden=true;toggleFS()}});
+  let ct=0;addEventListener('mousemove',()=>{document.documentElement.classList.remove('nocursor');clearTimeout(ct);ct=setTimeout(()=>document.documentElement.classList.add('nocursor'),2000)});
+}
+
+/* =====================================================================
+   導播台
+   ===================================================================== */
+function initDirector(){
+  let show=null,pvwId=null,pgm={id:null,scene:null,startedAt:0},missing=new Set(),edId=null,tab='direct',gSel=null;
+  let R=null,CK=new Set(),PBY={};
+  const outS={last:0,ready:false,fs:false,w:0,h:0,video:null,bgm:null};
+  const outOn=()=>Date.now()-outS.last<1500;
+  const K=()=>kitOf(show.kit);
+  const env=()=>({theme:show.theme,logo:show.logo,logoText:show.logoText,media:show.media,kit:show.kit});
+  const S=()=>show.settings;
+  const audioCfg=()=>({duck:S().duck,duckLevel:S().duckLevel,master:S().bgmVol,sfxVol:S().sfxVol,mode:S().bgmMode});
+  const plMsg=()=>show.playlist.map(id=>({id,name:show.media[id]?show.media[id].name:''}));
+  const findScene=id=>id==='__black'?BUILTIN.black:id==='__logo'?BUILTIN.logo:show.scenes.find(s=>s.id===id);
+  const typeLabel=sc=>sc.type==='game'?'遊戲・'+(GAME_META[sc.game]||{label:''}).label:TYPES[sc.type].label;
+  const touched=()=>{if(show.sample)show.sample=false};
+
+  /* ---------- 提示 ---------- */
+  function toast(msg,kind,action){const t=document.createElement('div');t.className='toast '+(kind||'');t.innerHTML=`<span>${esc(msg)}</span>`;
+    if(action){const b=document.createElement('button');b.type='button';b.className='btn sm';b.textContent=action[0];b.onclick=()=>{t.remove();action[1]()};t.appendChild(b)}
+    $('#toasts').appendChild(t);setTimeout(()=>t.remove(),action?10000:4000)}
+  function ask(title,text,buttons){return new Promise(res=>{const d=$('#dlgAsk');let done=false;const fin=v=>{if(!done){done=true;res(v)}};
+    $('#askTitle').textContent=title;$('#askText').textContent=text;const f=$('#askBtns');f.innerHTML='';
+    buttons.forEach(([v,l,cls])=>{const b=document.createElement('button');b.type='button';b.className='btn '+(cls||'');b.textContent=l;b.onclick=()=>{fin(v);d.close()};f.appendChild(b)});
+    d.onclose=()=>fin('cancel');d.showModal()})}
+
+  /* ---------- 名單與計分（執行中資料） ---------- */
+  function genRoster(kit,seed){const k=kitOf(kit),r=srand(seed);
+    const SUR='陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴周徐蘇葉莊呂江何蕭羅高'.split(''),GIV='志明怡君雅婷家豪俊宏佳穎淑芬冠廷欣妤承翰美玲建國宗郁涵柏睿育誠慧珊'.split('');
+    const nm=()=>pick(SUR,r)+pick(GIV,r)+pick(GIV,r);const people=[];let no=1001;
+    if(kit==='wedding'){const map=[0,0,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,4];for(let t=1;t<=18;t++){for(let i=0;i<10;i++){people.push({id:'G'+no,n:no,name:nm(),team:'第 '+t+' 桌',group:k.groups[map[t-1]]});no++}}}
+    else k.depts.forEach(([g,n])=>{for(let i=0;i<n;i++){people.push({id:'E'+no,n:no,name:nm(),team:g,group:g});no++}});
+    const order=shuffle(people.map(p=>p.id),r);const checked=order.slice(0,Math.round(people.length*.78));
+    return{kit,seed,people,checked,last:checked.slice(-6),scores:{},games:{}}}
+  function indexRoster(){CK=new Set(R.checked);PBY={};R.people.forEach(p=>{PBY[p.id]=p})}
+  const present=()=>R.people.filter(p=>CK.has(p.id));
+  function groupCount(g){let n=0,t=0;for(const p of R.people)if(p.group===g){t++;if(CK.has(p.id))n++}return{n,t}}
+  let saveRT=0;function saveR(){clearTimeout(saveRT);saveRT=setTimeout(()=>{R.checked=[...CK];idb.put('kv','runtime',R).catch(()=>{})},400)}
+  const GT={};
+  function setG(id,fn,ms){stopG(id);GT[id]=setInterval(fn,ms)}
+  function stopG(id){if(GT[id]){clearInterval(GT[id]);delete GT[id]}}
+  function stopAllG(){Object.keys(GT).forEach(stopG)}
+  function gs(sc){let st=R.games[sc.id];if(!st)st=R.games[sc.id]=GC[sc.game].init(sc);return st}
+  function gameVS(sc){const v=GC[sc.game].vs(gs(sc),sc);v.name=sc.name;return v}
+  const active=sc=>pgm.id===sc.id||(tab==='game'&&gSel===sc.id)||pvwId===sc.id;
+  function checkinN(n){const rest=shuffle(R.people.filter(p=>!CK.has(p.id))).slice(0,n);rest.forEach(p=>CK.add(p.id));if(rest.length)R.last=R.last.concat(rest.map(p=>p.id)).slice(-6);allGamesDirty()}
+  function topPeople(n){return Object.entries(R.scores).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([id,v])=>{const p=PBY[id];return p?{name:p.name,sub:p.team,score:v}:null}).filter(Boolean)}
+  function teamRank(){const m={};for(const p of R.people){if(!CK.has(p.id))continue;const t=m[p.team]||(m[p.team]={name:p.team,sum:0,n:0});t.sum+=R.scores[p.id]||0;t.n++}
+    return Object.values(m).map(t=>({name:t.name,sub:t.n+' 人',score:Math.round(t.sum/Math.max(1,t.n))})).filter(t=>t.score>0).sort((a,b)=>b.score-a.score)}
+  let scoreDirty=false,scoreT=0;
+  function scoresChanged(){scoreDirty=true;clearTimeout(scoreT);scoreT=setTimeout(()=>{show.scenes.forEach(s=>{if(s.type==='game'&&(s.game==='board'||s.game==='quiz'||s.game==='rapid'))DIRTY.add(s.id)})},150);saveR()}
+  function addScore(pid,pts){R.scores[pid]=(R.scores[pid]||0)+pts;scoresChanged()}
+  function undoAward(map){if(!map)return;for(const[pid,pts] of Object.entries(map))R.scores[pid]=Math.max(0,(R.scores[pid]||0)-pts);scoresChanged()}
+  function metaOf(p){if(!p)return '';const m=K().meta;return m==='team'?p.team:m==='track'?'託運單號 SJ26-'+String((p.n||0)*7919%1000000).padStart(6,'0'):m==='seed'?'seed 0x'+(((p.n||0)*2654435761)>>>0).toString(16).padStart(8,'0'):'員工編號 '+p.id}
+
+  /* ---------- 遊戲畫面更新 ---------- */
+  const DIRTY=new Set();let panelDirty=false;
+  function dirty(id,panel){DIRTY.add(id);if(panel&&id===gSel)panelDirty=true;saveR()}
+  function allGamesDirty(){show.scenes.forEach(s=>{if(s.type==='game')DIRTY.add(s.id)});panelDirty=true;scoreDirty=true;saveR()}
+  function flush(){
+    if(!R)return;
+    if(DIRTY.size){const ids=[...DIRTY];DIRTY.clear();
+      for(const id of ids){const sc=findScene(id);if(!sc||sc.type!=='game')continue;const v=gameVS(sc);updateGameEls(document,id,v);if(pgm.id===id)send({t:'game',id,vs:v})}}
+    if(panelDirty){panelDirty=false;if(tab==='game')renderPanel()}
+    if(scoreDirty&&tab==='score'){scoreDirty=false;renderScore()}
+  }
+  setInterval(flush,60);
+  setInterval(()=>{if(!show||!R)return;const now=Date.now();for(const sc of show.scenes){if(sc.type!=='game')continue;const c=GC[sc.game];if(c&&c.tick)c.tick(gs(sc),sc,now)}},50);
+
+  /* ---------- 遊戲控制器 ---------- */
+  const LINES=(()=>{const L=[];for(let i=0;i<5;i++){L.push([0,1,2,3,4].map(j=>i*5+j));L.push([0,1,2,3,4].map(j=>j*5+i))}L.push([0,6,12,18,24],[4,8,12,16,20]);return L})();
+  const cardCache={};
+  function bingoCard(seed,pid){const key=seed+':'+pid;if(cardCache[key])return cardCache[key];let h=seed|0;for(const c of pid)h=Math.imul(h^c.charCodeAt(0),16777619);const r=srand(h);const c=[];
+    for(let col=0;col<5;col++){const nums=shuffle(Array.from({length:15},(_,i)=>col*15+i+1),r).slice(0,5);for(let row=0;row<5;row++)c[row*5+col]=nums[row]}c[12]=0;return cardCache[key]=c}
+  function bingoNext(st){if(st.drawn.length>=75)return;st.drawn.push(st.seq[st.drawn.length]);const set=new Set(st.drawn);let c1=0,c2=0;
+    for(const p of present()){const c=bingoCard(st.seed,p.id);const n=LINES.filter(l=>l.every(i=>c[i]===0||set.has(c[i]))).length;if(n===1)c1++;else if(n===2)c2++;else if(n>=3&&!st.win.includes(p.id))st.win.push(p.id)}st.c1=c1;st.c2=c2}
+  const lotPrizes=(st,sc)=>parsePrizes(sc.text).concat(st.extra||[]);
+  const lotLeft=(st,P,i)=>(P[i]?P[i].total:0)-st.winners.filter(w=>w.pi===i&&!w.absent).length;
+  function lotPool(st){const used=new Set(st.winners.map(w=>w.pid));return present().filter(p=>!used.has(p.id))}
+  const dbVal=l=>Math.round(42+clamp(l,0,1)*76);
+  function saveRec(st){const g=K().groups[st.g];if(!g||!st.peak)return;st.records[g]=Math.max(st.records[g]||0,st.peak);st.peak=0}
+  const MIC={on:false,stream:null,an:null,buf:null,ctx:null,
+    async start(){if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('這個瀏覽器不支援麥克風');
+      this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      this.ctx=new(window.AudioContext||window.webkitAudioContext)();const src=this.ctx.createMediaStreamSource(this.stream);this.an=this.ctx.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true},
+    stop(){try{if(this.stream)this.stream.getTracks().forEach(t=>t.stop());if(this.ctx)this.ctx.close()}catch(e){}this.on=false},
+    level(){if(!this.on)return 0;this.an.getFloatTimeDomainData(this.buf);let s=0;for(const x of this.buf)s+=x*x;const db=20*Math.log10(Math.sqrt(s/this.buf.length)||1e-6);return(clamp(db+100,42,118)-42)/76}};
+  function pushDm(st,m,sc){st.items.push({id:++st.seq,who:m.who,text:m.text,ts:Date.now()});st.count=(st.count||0)+1;if(st.items.length>40)st.items=st.items.slice(-40);dirty(sc.id)}
+  const qBtns=(list,cur,done)=>`<ol class="qlist">${list.map((q,i)=>`<li><button type="button" data-ga="pick" data-v="${i}" aria-current="${i===cur}" class="${done&&done[i]?'done':''}"><em>${done&&done[i]?'✓':i+1}</em><span>${esc(q.q)}</span></button></li>`).join('')}</ol>`;
+  const groupSel=(key,cur)=>`<select data-gs="${key}" data-num="1">${K().groups.map((n,i)=>`<option value="${i}"${i===cur?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
+
+  const GC={
+  checkin:{init:()=>({live:false}),
+    vs(){const k=K();const rows=k.groups.map(g=>{const c=groupCount(g);return{name:g,r:c.t?c.n/c.t:0}});const best=Math.max(0,...rows.map(r=>r.r));
+      return{label:k.L.checked,count:CK.size,total:R.people.length,sub:k.L.checkSub,tickLabel:k.L.ticker,rows:rows.map(r=>({name:r.name,r:r.r,lead:best>0&&r.r===best})),
+        ticker:R.last.slice(-3).map(id=>PBY[id]?PBY[id].team+' '+PBY[id].name:'').filter(Boolean).join('、')}},
+    panel(st){const L=K().L;return `<div class="gbtns"><button type="button" class="btn primary big" data-ga="add">模擬 10 人${L.checkVerb}</button><div class="gbtns two"><button type="button" class="btn" data-ga="all">全員到齊</button><button type="button" class="btn${st.live?' live-red':''}" data-ga="live">${st.live?'暫停':'連續'+L.checkVerb}</button></div><button type="button" class="btn ghost" data-ga="clear">清空${L.checkVerb}紀錄</button></div>
+      <p class="hint">來賓用手機${L.checkVerb}後，會自動分組並加入抽獎池。目前 ${CK.size} / ${R.people.length} 人。</p>`},
+    act(st,a,sc){if(a==='add')checkinN(10);else if(a==='all')checkinN(1e6);else if(a==='clear'){CK.clear();R.last=[];allGamesDirty()}
+      else if(a==='live'){st.live=!st.live;if(st.live)setG(sc.id,()=>{checkinN(1+Math.floor(Math.random()*3));if(CK.size>=R.people.length){st.live=false;stopG(sc.id);dirty(sc.id,true)}},700);else stopG(sc.id)}},
+    load(st){st.live=false}},
+
+  lights:{init:()=>({on:false,at:0,msg:null,pal:0}),
+    vs(st){const k=K(),p=k.palettes[st.pal]||k.palettes[0];return{on:st.on,at:st.at,total:CK.size,msg:st.msg==null?k.L.lightsMsg:st.msg,pal:p[2],net:!!k.network,countLabel:k.L.lightsCount}},
+    panel(st){const k=K();return `<div class="gbtns"><button type="button" class="btn ${st.on?'':'primary'} big" data-ga="on"${st.on?' disabled':''}>${esc(k.L.lightsOn)}</button><button type="button" class="btn" data-ga="off"${st.on?'':' disabled'}>${esc(k.L.lightsOff)}</button></div>
+      <label class="f"><span>投影字幕</span><input type="text" data-gs="msg" maxlength="30" value="${esc(st.msg==null?k.L.lightsMsg:st.msg)}"></label>
+      <label class="f"><span>燈光顏色</span><select data-gs="pal" data-num="1">${k.palettes.map((p,i)=>`<option value="${i}"${i===st.pal?' selected':''}>${esc(p[1])}</option>`).join('')}</select></label>
+      <p class="hint">每一點代表一支已開燈的手機。正式版來賓手機會同步亮起同一個顏色。</p>`},
+    act(st,a){const now=Date.now();if(a==='on'&&!st.on){st.on=true;st.at=now}else if(a==='off'&&st.on){st.on=false;st.at=now}}},
+
+  danmaku:{init:()=>({auto:true,items:[],queue:[],pin:'',seq:0,next:0,count:0}),
+    vs(st){return{pin:st.pin,items:st.items.slice(-14),count:st.count}},
+    tick(st,sc,now){if(!active(sc)||now<st.next)return;st.next=now+900+Math.random()*700;const k=K(),text=pick(k.msgs),p=pick(present());if(!p)return;
+      const flag=k.flag.some(f=>text.includes(f)),m={text,who:p.name,flag};
+      if(flag||!st.auto){if(st.queue.length<12){st.queue.push(m);dirty(sc.id,true)}}else pushDm(st,m,sc)},
+    panel(st){return `<label class="check"><input type="checkbox" data-gs="auto" data-bool="1"${st.auto?' checked':''}> 一般留言自動上牆</label><p class="hint">含有「${esc(K().flag.join('、'))}」的留言一律進審核區。</p>
+      <h3>待審核（${st.queue.length}）</h3><ul class="queue">${st.queue.map((m,i)=>`<li class="${m.flag?'flag':''}"><span>${esc(m.text)}</span><small>${esc(m.who)}${m.flag?'・含敏感字眼':''}</small><div class="row"><button type="button" class="btn sm" data-ga="ok" data-v="${i}">通過</button><button type="button" class="btn sm ghost" data-ga="del" data-v="${i}">刪除</button></div></li>`).join('')||'<li><small>目前沒有待審核的留言</small></li>'}</ul>
+      <label class="f"><span>主持人置頂訊息</span><input type="text" id="dmPinIn" maxlength="30" value="${esc(st.pin)}" placeholder="例如：抽獎 8 點開始"></label><div class="gbtns two"><button type="button" class="btn" data-ga="pin">置頂</button><button type="button" class="btn" data-ga="unpin">取消置頂</button></div>`},
+    act(st,a,sc,v){if(a==='ok'){const m=st.queue.splice(+v,1)[0];if(m)pushDm(st,m,sc)}else if(a==='del')st.queue.splice(+v,1);else if(a==='pin')st.pin=($('#dmPinIn').value||'').trim();else if(a==='unpin')st.pin=''}},
+
+  quiz:{init:()=>({qi:0,phase:'idle',counts:[0,0,0,0],ans:{},fast:[],endAt:0,award:{},done:{}}),
+    vs(st,sc){const qs=parseQuiz(sc.text),q=qs[st.qi]||{q:'還沒有題目，請到「畫面設定」輸入',opts:[],ans:-1},rev=st.phase==='reveal';
+      return{phase:st.phase,qi:st.qi,n:qs.length,q:q.q,opts:q.opts,t:st.phase==='open'?Math.max(0,Math.ceil((st.endAt-Date.now())/1000)):0,answered:Object.keys(st.ans).length,total:CK.size,
+        counts:rev?st.counts:null,ans:rev?q.ans:-1,fast:rev?st.fast.slice(0,3).map(id=>PBY[id]?PBY[id].name:'').filter(Boolean):[],top:st.phase==='board'?topPeople(10):[]}},
+    panel(st,sc){const qs=parseQuiz(sc.text),ph=st.phase,last=st.qi>=qs.length-1;
+      const main=ph==='open'?`<button type="button" class="btn live-red big" data-ga="close">提前截止</button>`:ph==='closed'?`<button type="button" class="btn primary big" data-ga="reveal">公布答案</button>`
+        :ph==='reveal'?(last?`<button type="button" class="btn primary big" data-ga="board">顯示排行</button>`:`<button type="button" class="btn primary big" data-ga="next">下一題</button>`)
+        :`<button type="button" class="btn primary big" data-ga="open"${qs.length?'':' disabled'}>開始作答（${+sc.secs||10} 秒）</button>`;
+      return `<h3>題目（${qs.length} 題）<button type="button" class="linkbtn" data-ga="__edit">編輯題目</button></h3>${qBtns(qs,st.qi,st.done)}
+        <div class="gbtns">${main}<div class="gbtns two"><button type="button" class="btn" data-ga="reveal"${ph==='open'||ph==='closed'?'':' disabled'}>直接公布</button><button type="button" class="btn" data-ga="board">顯示排行</button></div></div>
+        <p class="hint">答對得 500 分，再依剩餘秒數加分（每秒 50 分）。同一題重新作答時，會先扣回上次的得分。</p>`},
+    act(st,a,sc,v){const qs=parseQuiz(sc.text);
+      if(a==='pick'){stopG(sc.id);st.qi=clamp(+v,0,Math.max(0,qs.length-1));st.phase='idle'}
+      else if(a==='open'){const q=qs[st.qi];if(!q)return;stopG(sc.id);undoAward(st.award[st.qi]);const qi=st.qi,aw=st.award[qi]={};
+        Object.assign(st,{phase:'open',counts:[0,0,0,0],ans:{},fast:[],endAt:Date.now()+(+sc.secs||10)*1000});st.done[qi]=true;
+        const pool=shuffle(present()),wrong=[0,1,2,3].filter(x=>x!==q.ans&&x<q.opts.length);let idx=0;
+        setG(sc.id,()=>{const rem=st.endAt-Date.now();if(rem<=0){st.phase='closed';stopG(sc.id);dirty(sc.id,true);return}
+          const n=1+Math.floor(Math.random()*5);for(let j=0;j<n&&idx<pool.length;j++,idx++){const p=pool[idx],right=!wrong.length||Math.random()<.6,c=right?q.ans:pick(wrong);st.counts[c]++;st.ans[p.id]=c;
+            if(right){const pts=500+Math.round(rem/1000*50);aw[p.id]=pts;addScore(p.id,pts);st.fast.push(p.id)}}
+          dirty(sc.id)},120)}
+      else if(a==='close'){stopG(sc.id);st.phase='closed'}
+      else if(a==='reveal'){stopG(sc.id);st.phase='reveal'}
+      else if(a==='next'){stopG(sc.id);st.qi=Math.min(st.qi+1,Math.max(0,qs.length-1));st.phase='idle'}
+      else if(a==='board'){stopG(sc.id);st.phase='board'}},
+    load(st){if(st.phase==='open')st.phase='closed'},
+    reset(st){Object.values(st.award||{}).forEach(undoAward)}},
+
+  rapid:{init:()=>({qi:0,phase:'idle',counts:[0,0],ans:{},endAt:0,correct:null,award:{},done:{}}),
+    vs(st,sc){const qs=parseRapid(sc.text,sc.a,sc.b),q=qs[st.qi]||{q:'還沒有題目，請到「畫面設定」輸入'},rev=st.phase==='reveal';
+      return{phase:st.phase,qi:st.qi,n:qs.length,q:q.q,a:sc.a||'A',b:sc.b||'B',t:st.phase==='open'?Math.max(0,Math.ceil((st.endAt-Date.now())/1000)):0,answered:Object.keys(st.ans).length,total:CK.size,
+        counts:rev?st.counts:null,correct:rev?st.correct:null,top:st.phase==='board'?topPeople(10):rev?topPeople(3):[]}},
+    panel(st,sc){const qs=parseRapid(sc.text,sc.a,sc.b),q=qs[st.qi],ph=st.phase,A=esc(sc.a||'A'),Bn=esc(sc.b||'B'),last=st.qi>=qs.length-1;
+      const main=ph==='open'?`<button type="button" class="btn live-red big" data-ga="close">提前截止</button>`
+        :ph==='closed'?(q&&q.preset!=null?`<button type="button" class="btn primary big" data-ga="rev" data-v="${q.preset}">公布預設答案：${q.preset===0?A:Bn}</button>`:'')+`<div class="gbtns two"><button type="button" class="btn${q&&q.preset==null?' primary big':''}" data-ga="rev" data-v="0">答案是 ${A}</button><button type="button" class="btn${q&&q.preset==null?' primary big':''}" data-ga="rev" data-v="1">答案是 ${Bn}</button></div>`
+        :ph==='reveal'?(last?`<button type="button" class="btn primary big" data-ga="board">顯示排行</button>`:`<button type="button" class="btn primary big" data-ga="nextopen">下一題，立即開始</button>`)
+        :`<button type="button" class="btn primary big" data-ga="open"${qs.length?'':' disabled'}>開始作答（${+sc.secs||5} 秒）</button>`;
+      return `<h3>題目（${qs.length} 題）<button type="button" class="linkbtn" data-ga="__edit">編輯題目</button></h3>${qBtns(qs,st.qi,st.done)}<div class="gbtns">${main}${ph==='board'?'':`<button type="button" class="btn" data-ga="board">顯示排行</button>`}</div>
+        <p class="hint">${K()===KITS.wedding?'新人舉牌後，按下新人舉的那一邊就會公布。':'題目後面加「= 答案」可以預設答案。'}猜對得 100 分，再依剩餘秒數加分。</p>`},
+    act(st,a,sc,v){const qs=parseRapid(sc.text,sc.a,sc.b);
+      const open=()=>{if(!qs[st.qi])return;stopG(sc.id);undoAward(st.award[st.qi]);st.award[st.qi]={};Object.assign(st,{phase:'open',counts:[0,0],ans:{},correct:null,endAt:Date.now()+(+sc.secs||5)*1000});st.done[st.qi]=true;
+        const pool=shuffle(present()),bias=.25+Math.random()*.5;let idx=0;
+        setG(sc.id,()=>{const rem=st.endAt-Date.now();if(rem<=0){st.phase='closed';stopG(sc.id);dirty(sc.id,true);return}
+          const n=2+Math.floor(Math.random()*8);for(let j=0;j<n&&idx<pool.length;j++,idx++){const c=Math.random()<bias?0:1;st.counts[c]++;st.ans[pool[idx].id]=[c,rem]}dirty(sc.id)},100)};
+      if(a==='pick'){stopG(sc.id);st.qi=clamp(+v,0,Math.max(0,qs.length-1));st.phase='idle'}
+      else if(a==='open')open();
+      else if(a==='close'){stopG(sc.id);st.phase='closed'}
+      else if(a==='rev'){stopG(sc.id);const c=+v;undoAward(st.award[st.qi]);const aw=st.award[st.qi]={};st.correct=c;
+        for(const[pid,x] of Object.entries(st.ans)){if(x[0]===c){const pts=100+Math.round(x[1]/1000*20);aw[pid]=pts;addScore(pid,pts)}}st.phase='reveal'}
+      else if(a==='nextopen'){if(st.qi<qs.length-1){st.qi++;open()}}
+      else if(a==='board'){stopG(sc.id);st.phase='board'}},
+    load(st){if(st.phase==='open')st.phase='closed'},
+    reset(st){Object.values(st.award||{}).forEach(undoAward)}},
+
+  board:{init:()=>({}),
+    vs(st,sc){const mode=sc.mode==='team'?'team':'person',n=+sc.n||10;return{title:sc.title,mode,teamWord:K().teamWord,rows:mode==='team'?teamRank().slice(0,n):topPeople(n)}},
+    panel(st,sc){return `<div class="gbtns two"><button type="button" class="btn${sc.mode!=='team'?' primary':''}" data-ga="mode" data-v="person">個人排行</button><button type="button" class="btn${sc.mode==='team'?' primary':''}" data-ga="mode" data-v="team">${esc(K().teamWord)}排行</button></div>
+      <p class="hint">分數來自問答與快問快答，公布答案後會即時更新。${esc(K().teamWord)}排行用平均分，人多的${esc(K().teamWord)}不會佔便宜。完整名單和歸零在「計分排名」分頁。</p>`},
+    act(st,a,sc,v){if(a==='mode'){sc.mode=v;touched();save()}}},
+
+  vote:{init:()=>({open:false,done:false,votes:[],w:[]}),
+    vs(st,sc){const opts=parseOpts(sc.text),total=st.votes.reduce((a,b)=>a+(b||0),0);return{title:sc.title,opts:opts.map((o,i)=>({label:o.label,sub:o.sub,n:st.votes[i]||0})),open:st.open,done:st.done,hide:!!sc.hide,total,voters:CK.size}},
+    panel(st,sc){const opts=parseOpts(sc.text);return `<h3>${esc(sc.title||'投票')}<button type="button" class="linkbtn" data-ga="__edit">編輯選項</button></h3>
+      <div class="gbtns">${st.open?`<button type="button" class="btn live-red big" data-ga="close">截止投票</button>`:`<button type="button" class="btn primary big" data-ga="open"${opts.length?'':' disabled'}>${st.done?'繼續開放投票':'開放投票'}</button>`}<button type="button" class="btn" data-ga="clear">清除票數</button></div>
+      <label class="check"><input type="checkbox" data-gs="hide" data-scene="1" data-bool="1"${sc.hide?' checked':''}> 截止前不公開票數（保留懸念）</label><p class="hint">每支手機限投一票，投票結果不影響積分。</p>`},
+    act(st,a,sc){const n=parseOpts(sc.text).length;
+      if(a==='open'){stopG(sc.id);st.open=true;st.done=false;while(st.votes.length<n)st.votes.push(0);st.w=Array.from({length:n},()=>.5+Math.random());
+        setG(sc.id,()=>{const tot=st.votes.reduce((x,y)=>x+y,0);if(tot>=CK.size){stopG(sc.id);st.open=false;st.done=true;dirty(sc.id,true);return}
+          const k=Math.min(CK.size-tot,1+Math.floor(Math.random()*5)),ws=st.w.reduce((x,y)=>x+y,0);for(let j=0;j<k;j++){let r=Math.random()*ws,i=0;while(i<n-1&&r>st.w[i]){r-=st.w[i];i++}st.votes[i]++}dirty(sc.id)},250)}
+      else if(a==='close'){stopG(sc.id);st.open=false;st.done=true}
+      else if(a==='clear'){stopG(sc.id);Object.assign(st,{open:false,done:false,votes:[]})}},
+    load(st){if(st.open){st.open=false;st.done=true}}},
+
+  rain:{init:()=>({running:false,endAt:0,board:{},pops:[],seq:0,done:false}),
+    vs(st){const k=K(),top=Object.entries(st.board).sort((a,b)=>b[1]-a[1]);
+      return{running:st.running,endAt:st.endAt,done:st.done,top:top.slice(0,5).map(([id,v])=>({name:PBY[id]?PBY[id].name:'',amt:v})),king:top.slice(0,3).map(([id])=>PBY[id]?PBY[id].name:''),pops:st.pops.slice(-8),item:k.rainItem,
+        L:{ready:k.L.rainReady,readySub:k.L.rainReadySub,over:k.L.rainOver,king:k.L.rainKing,board:k.L.board,pop:k.L.pop}}},
+    panel(st,sc){const top=Object.entries(st.board).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      return `<div class="gbtns"><button type="button" class="btn primary big" data-ga="go"${st.running?' disabled':''}>${st.running?'進行中…':`開始（${+sc.secs||15} 秒）`}</button><button type="button" class="btn" data-ga="clear">清除排行</button></div>
+        <h3>排行（前 8 名）</h3><ul class="glog">${top.map(([id,v],i)=>`<li><span>${i+1}. ${esc(PBY[id]?PBY[id].name:'')}・${esc(PBY[id]?PBY[id].team:'')}</span><span>${fmtN(v)} 點</span></li>`).join('')||'<li><span>尚無紀錄</span></li>'}</ul><p class="hint">點數是虛擬的，結束後可以換小獎或加抽次數，不計入積分。</p>`},
+    act(st,a,sc){if(a==='clear'){stopG(sc.id);Object.assign(st,{running:false,board:{},pops:[],done:false})}
+      else if(a==='go'){stopG(sc.id);Object.assign(st,{running:true,done:false,endAt:Date.now()+(+sc.secs||15)*1000,pops:[]});const k=K(),ppl=present();
+        setG(sc.id,()=>{if(Date.now()>=st.endAt){stopG(sc.id);st.running=false;st.done=true;dirty(sc.id,true);return}
+          if(ppl.length&&Math.random()<.85){const p=pick(ppl),amt=k.amounts[Math.floor(Math.random()**1.6*k.amounts.length)];st.board[p.id]=(st.board[p.id]||0)+amt;st.pops.push({id:++st.seq,name:p.name,amt,x:Math.random()});if(st.pops.length>12)st.pops.shift()}
+          dirty(sc.id)},140)}},
+    load(st){if(st.running){st.running=false;st.done=true}}},
+
+  guess:{init:sc=>{const mn=+sc.min||1,mx=Math.max(mn+2,+sc.max||100);return{min:mn,max:mx,lo:mn-1,hi:mx+1,secret:mn+1+Math.floor(Math.random()*(mx-mn-1)),hist:[],done:null,show:false}},
+    vs(st){return{min:st.min,max:st.max,lo:st.lo+1,hi:st.hi-1,last:st.hist[st.hist.length-1]||null,done:st.done?{name:st.done.name,team:st.done.team,secret:st.secret}:null}},
+    panel(st){return `<div class="secret"><span>密碼（只有你看得到）</span><b>${st.show?st.secret:'••'}</b><button type="button" class="btn sm" data-ga="show">${st.show?'隱藏':'顯示'}</button></div>
+      <div class="row2"><label class="f"><span>現場來賓猜的數字</span><input type="number" id="gsIn" min="${st.lo+1}" max="${st.hi-1}"${st.done?' disabled':''}></label><button type="button" class="btn" data-ga="guess" style="align-self:end"${st.done?' disabled':''}>送出</button></div>
+      <div class="gbtns"><button type="button" class="btn primary big" data-ga="sim"${st.done?' disabled':''}>模擬下一位來賓猜</button><button type="button" class="btn" data-ga="new">重新出題</button></div>
+      <ul class="glog">${st.hist.slice().reverse().map(h=>`<li><span>${esc(h.who)} 猜 ${h.n}</span><span>${h.n===st.secret?'猜中':h.n>st.secret?'太大':'太小'}</span></li>`).join('')||'<li><span>還沒有人猜</span></li>'}</ul>`},
+    act(st,a,sc){const who=()=>pick(present())||{name:'來賓',team:''};
+      const g=(n,p)=>{if(st.done||!(n>st.lo&&n<st.hi))return false;st.hist.push({n,who:p.name});if(n===st.secret)st.done={name:p.name,team:p.team};else if(n>st.secret)st.hi=n;else st.lo=n;return true};
+      if(a==='show')st.show=!st.show;else if(a==='new')R.games[sc.id]=GC.guess.init(sc);
+      else if(a==='guess'){const n=parseInt($('#gsIn').value,10);if(!g(n,who()))toast('請輸入 '+(st.lo+1)+'～'+(st.hi-1)+' 之間的數字','err')}
+      else if(a==='sim'){const span=st.hi-st.lo-1;if(span<1)return;const mid=Math.floor((st.lo+st.hi)/2);g(clamp(Math.random()<.5?mid:st.lo+1+Math.floor(Math.random()*span),st.lo+1,st.hi-1),who())}}},
+
+  tug:{init:()=>({a:0,b:1,avg:true,sa:0,sb:0,t:15,banner:'',running:false}),
+    vs(st){const k=K(),g=k.groups,na=groupCount(g[st.a]).n,nb=groupCount(g[st.b]).n,A=st.avg?st.sa/Math.max(1,na):st.sa,B=st.avg?st.sb/Math.max(1,nb):st.sb;
+      const f=x=>st.avg?x.toFixed(1)+' '+k.L.tugUnit+'/人':fmtN(x)+' '+k.L.tugUnit;
+      return{an:g[st.a]||'',bn:g[st.b]||'',ac:na,bc:nb,sa:f(A),sb:f(B),pos:A+B?clamp(50-(A-B)/(A+B)*160,8,92):50,t:st.t,banner:st.banner||k.L.tugReady}},
+    panel(st){return `<div class="row2"><label class="f"><span>左方</span>${groupSel('a',st.a)}</label><label class="f"><span>右方</span>${groupSel('b',st.b)}</label></div>
+      <label class="check"><input type="checkbox" data-gs="avg" data-bool="1"${st.avg?' checked':''}> 依人數平均計分（人少的一方不吃虧）</label>
+      <div class="gbtns"><button type="button" class="btn primary big" data-ga="go"${st.running?' disabled':''}>開始 15 秒</button><button type="button" class="btn" data-ga="zero">重置</button></div><p class="hint">正式版：手機畫面是一顆大按鈕，點越快繩子拉越多。</p>`},
+    act(st,a,sc){const k=K();
+      if(a==='zero'){stopG(sc.id);Object.assign(st,{sa:0,sb:0,t:15,banner:'',running:false})}
+      else if(a==='go'){if(st.a===st.b){st.banner='請選兩個不同的組';return}stopG(sc.id);Object.assign(st,{sa:0,sb:0,t:15,banner:k.L.tugGo,running:true});
+        const ga=k.groups[st.a],gb=k.groups[st.b],bA=.85+Math.random()*.3,bB=.85+Math.random()*.3;let ticks=0;
+        setG(sc.id,()=>{ticks++;const na=groupCount(ga).n,nb=groupCount(gb).n;st.sa+=na*(5+Math.random()*3)*bA*.1;st.sb+=nb*(5+Math.random()*3)*bB*.1;if(ticks%10===0)st.t--;
+          if(st.t<=0){stopG(sc.id);st.running=false;const A=st.avg?st.sa/Math.max(1,na):st.sa,B=st.avg?st.sb/Math.max(1,nb):st.sb;st.banner=(A>=B?ga:gb)+' 獲勝！';dirty(sc.id,true);return}dirty(sc.id)},100)}},
+    load(st){if(st.running){st.running=false;st.banner=''}}},
+
+  race:{init:()=>({pos:{},places:[],ms:0,running:false,banner:''}),
+    vs(st){return{lanes:K().groups.map(n=>({name:n,pos:st.pos[n]||0,place:st.places.indexOf(n)+1})),ms:st.ms,banner:st.banner||'各就各位'}},
+    panel(st){return `<div class="gbtns"><button type="button" class="btn primary big" data-ga="go"${st.running?' disabled':''}>開始衝刺</button><button type="button" class="btn" data-ga="zero">重置</button></div>
+      <ul class="glog">${st.places.map((n,i)=>`<li><span>第 ${i+1} 名</span><span>${esc(n)}</span></li>`).join('')||'<li><span>尚未開始</span></li>'}</ul><p class="hint">正式版偵測手機搖晃次數，依各組到場人數平均後換算成前進距離。</p>`},
+    act(st,a,sc){if(a==='zero'){stopG(sc.id);Object.assign(st,{pos:{},places:[],ms:0,running:false,banner:''})}
+      else if(a==='go'){stopG(sc.id);Object.assign(st,{pos:{},places:[],ms:0,running:true,banner:'用力搖！'});const g=K().groups,boost={};g.forEach(n=>boost[n]=.8+Math.random()*.4);
+        setG(sc.id,()=>{st.ms+=100;g.forEach(n=>{if(st.places.includes(n))return;st.pos[n]=(st.pos[n]||0)+(.5+Math.random()*.9)*boost[n];if(st.pos[n]>=100){st.places.push(n);if(st.places.length===1)st.banner=n+' 第一個衝線！';dirty(sc.id,true)}});
+          if(st.places.length===g.length){stopG(sc.id);st.running=false;dirty(sc.id,true)}else dirty(sc.id)},100)}},
+    load(st){st.running=false}},
+
+  db:{init:()=>({g:0,level:0,peak:0,records:{},hold:false,recUntil:0}),
+    vs(st){const k=K();return{team:k.groups[st.g]||'',cheer:k.L.dbCheer,level:st.level,db:dbVal(st.level),peak:st.peak,records:Object.entries(st.records).sort((a,b)=>b[1]-a[1]).map(([n,v])=>({name:n,db:v})),mic:MIC.on}},
+    tick(st,sc,now){if(!active(sc)&&!st.hold&&!st.recUntil)return;let target,rate;
+      if(MIC.on){target=MIC.level();rate=.35}else{target=st.hold?.82+Math.random()*.18:.08+Math.random()*.06;rate=st.hold?.09:.06}
+      st.level+=(target-st.level)*rate;const v=dbVal(st.level);if((st.hold||now<st.recUntil)&&v>st.peak)st.peak=v;
+      if(st.recUntil&&now>=st.recUntil){st.recUntil=0;saveRec(st);dirty(sc.id,true)}DIRTY.add(sc.id)},
+    panel(st){return `<label class="f"><span>這一輪喊聲的${esc(K().groupWord)}</span>${groupSel('g',st.g)}</label>
+      <div class="gbtns">${MIC.on?`<button type="button" class="btn primary big" data-ga="rec"${st.recUntil?' disabled':''}>${st.recUntil?'收音中…':'開始收音 5 秒'}</button><button type="button" class="btn" data-ga="micoff">關閉麥克風，改用模擬</button>`
+        :`<button type="button" class="btn primary big" data-hold="1">按住模擬歡呼</button><button type="button" class="btn" data-ga="micon">改用筆電麥克風收音</button>`}<button type="button" class="btn" data-ga="save">記錄本輪分數</button></div>
+      <h3>各組紀錄</h3><ul class="glog">${Object.entries(st.records).sort((a,b)=>b[1]-a[1]).map(([n,v],i)=>`<li><span>${i+1}. ${esc(n)}</span><span>${v} dB</span></li>`).join('')||'<li><span>尚無紀錄</span></li>'}</ul>
+      <p class="hint">麥克風模式量的是筆電收到的相對音量，用來比較各組大小聲。</p>`},
+    act(st,a,sc){if(a==='save')saveRec(st);else if(a==='rec'){st.peak=0;st.recUntil=Date.now()+5000}
+      else if(a==='micon')MIC.start().then(()=>{toast('已開啟麥克風');dirty(sc.id,true)}).catch(e=>toast('無法使用麥克風：'+(e.message||e),'err'));else if(a==='micoff')MIC.stop()},
+    load(st){st.hold=false;st.recUntil=0}},
+
+  bingo:{init:()=>({seed:Math.floor(Math.random()*1e9),seq:shuffle(Array.from({length:75},(_,i)=>i+1)),drawn:[],win:[],c1:0,c2:0,auto:false}),
+    vs(st){return{drawn:st.drawn,last:st.drawn[st.drawn.length-1]||null,c1:st.c1,c2:st.c2,win:st.win.map(id=>PBY[id]?PBY[id].name:'')}},
+    panel(st){return `<div class="gbtns"><button type="button" class="btn primary big" data-ga="next"${st.drawn.length>=75?' disabled':''}>開出下一顆</button><div class="gbtns two"><button type="button" class="btn${st.auto?' live-red':''}" data-ga="auto">${st.auto?'暫停自動':'自動開球'}</button><button type="button" class="btn" data-ga="new">重新開局</button></div></div>
+      <h3>賓果名單（前 5 名得獎）</h3><ul class="glog">${st.win.slice(0,10).map((id,i)=>`<li class="${i>4?'absent':''}"><span>${i+1}. ${esc(PBY[id]?PBY[id].name:'')}・${esc(PBY[id]?PBY[id].team:'')}</span><span>${i<5?'得獎':'名額已滿'}</span></li>`).join('')||'<li><span>還沒有人賓果</span></li>'}</ul>
+      <p class="hint">每位已${esc(K().L.checkVerb)}的來賓自動配一張 5×5 賓果卡，中間是免費格。</p>`},
+    act(st,a,sc){if(a==='next')bingoNext(st);
+      else if(a==='auto'){st.auto=!st.auto;if(st.auto)setG(sc.id,()=>{bingoNext(st);if(st.drawn.length>=75||st.win.length>=5){st.auto=false;stopG(sc.id)}dirty(sc.id,true)},1200);else stopG(sc.id)}
+      else if(a==='new'){stopG(sc.id);R.games[sc.id]=GC.bingo.init()}},
+    load(st){st.auto=false}},
+
+  lottery:{init:()=>({pi:0,winners:[],rolling:false,roll:null,last:null,extra:[],note:''}),
+    vs(st,sc){const P=lotPrizes(st,sc),pi=P[st.pi]?st.pi:0,p=P[pi]||{name:'—',item:'',total:0},last=st.last!=null?st.winners[st.last]:null,k=K();
+      return{prize:{name:p.name,item:p.item,left:lotLeft(st,P,pi),total:p.total},rolling:st.rolling,roll:st.rolling?st.roll:null,pool:lotPool(st).length,note:st.note,
+        win:last&&!last.absent&&last.pi===pi&&!st.rolling&&PBY[last.pid]?{name:PBY[last.pid].name,meta:metaOf(PBY[last.pid]),claim:k.L.claim}:null,
+        strip:st.winners.filter(w=>w.pi===pi).map(w=>({name:PBY[w.pid]?PBY[w.pid].name:'',absent:w.absent}))}},
+    panel(st,sc){const P=lotPrizes(st,sc),left=lotLeft(st,P,st.pi),last=st.last!=null?st.winners[st.last]:null,bonus=K()===KITS.wedding?'父母加碼':'老闆加碼';
+      return `<div class="prizes">${P.map((p,i)=>`<button type="button" class="prize-btn${lotLeft(st,P,i)>0?'':' done'}" data-ga="pick" data-v="${i}" aria-pressed="${i===st.pi}"><span>${esc(p.name)}<small>${esc(p.item)}</small></span><b>${lotLeft(st,P,i)}/${p.total}</b></button>`).join('')}</div>
+        <div class="gbtns"><button type="button" class="btn big ${st.rolling?'live-red':'primary'}" data-ga="go"${!st.rolling&&(left<=0||!lotPool(st).length)?' disabled':''}>${st.rolling?'停！':'開始抽獎'}</button>
+        <button type="button" class="btn" data-ga="absent"${last&&!last.absent&&!st.rolling?'':' disabled'}>中獎者缺席，重抽</button></div>
+        <div class="row2"><label class="f"><span>${bonus}（現金）</span><input type="number" id="ltBonus" min="1000" step="1000" value="20000"></label><button type="button" class="btn" data-ga="bonus" style="align-self:end">加入獎項</button></div>
+        <h3>得獎紀錄</h3><ul class="glog">${st.winners.slice().reverse().map(w=>`<li class="${w.absent?'absent':''}"><span>${esc(PBY[w.pid]?PBY[w.pid].name:'')}（${esc(metaOf(PBY[w.pid]))}）</span><span>${esc((P[w.pi]||{}).name||'')}${w.absent?'・缺席':''}</span></li>`).join('')||'<li><span>尚未抽出</span></li>'}</ul>`},
+    act(st,a,sc,v){const P=lotPrizes(st,sc);
+      if(a==='pick'){if(st.rolling)return;st.pi=+v;st.last=null;st.note=''}
+      else if(a==='go'){if(!st.rolling){const pool=lotPool(st);if(lotLeft(st,P,st.pi)<=0||!pool.length)return;st.rolling=true;st.last=null;st.note='';st.roll=shuffle(pool).slice(0,40).map(p=>[p.name,metaOf(p)])}
+        else{st.rolling=false;const pool=lotPool(st);if(!pool.length)return;const p=pick(pool);st.winners.push({pid:p.id,pi:st.pi,absent:false});st.last=st.winners.length-1}}
+      else if(a==='absent'){const w=st.winners[st.last];if(w&&!w.absent){w.absent=true;st.note=(PBY[w.pid]?PBY[w.pid].name:'')+' '+K().L.redraw;st.last=null}}
+      else if(a==='bonus'){const amt=Math.max(1000,parseInt(($('#ltBonus')||{}).value,10)||0);st.extra.push({name:K()===KITS.wedding?'父母加碼':'老闆加碼',item:'現金 NT$'+fmtN(amt),total:1});st.pi=P.length;st.last=null;st.note='加碼！'}},
+    load(st){st.rolling=false}}
+  };
+
+  /* ---------- 範本 ---------- */
+  const newGameK=(kit,g,p)=>newScene('game',Object.assign({game:g,name:gameName(kit,g)},gameDefaults(g,kit),p||{}));
+  const newGame=(g,p)=>newGameK(show.kit,g,p);
+  function templateShow(kind){
+    const kit=kind==='wedding'?'wedding':KITS[kind]&&kind!=='wedding'?kind:'classic',k=kitOf(kit);
+    const base={app:'amei-director',version:2,kit,tpl:kind,name:'新場次',date:'',aspect:'16/9',theme:Object.assign({preset:k.theme},THEMES[k.theme]),logo:null,logoText:'',media:{},scenes:[],playlist:[],sfx:[],
+      settings:{transition:'fade',fadeMs:800,autoNext:true,duck:true,duckLevel:.25,bgmVol:.7,bgmMode:'loop',sfxVol:1,lastExport:0}};
+    const T=(n,p)=>newScene('title',Object.assign({name:n},p)),G=(g,p)=>newGameK(kit,g,p),pause={bgm:{action:'pause',track:null}};
+    if(kind==='wedding'){Object.assign(base,{name:'新郎 & 新娘 婚禮',logoText:'新郎 & 新娘'});base.scenes=[
+      newScene('slideshow',{name:'入場等候輪播',caption:'歡迎參加我們的婚禮'}),
+      newScene('countdown',{name:'入席倒數',title:'婚宴即將開始',minutes:15,endText:'婚宴開始'}),
+      G('checkin'),G('lights'),
+      T('新人進場',Object.assign({eyebrow:'第一次進場',title:'新郎 & 新娘',sub:'請大家用掌聲歡迎'},pause)),
+      newScene('video',{name:'成長影片',end:'logo'}),
+      G('quiz'),G('rapid'),G('board'),
+      T('二次進場',{eyebrow:'第二次進場',title:'新郎 & 新娘'}),
+      G('danmaku'),G('vote'),G('tug'),G('lottery'),
+      newScene('web',{name:'拾光祝福牆（網頁）',url:'wedding-wall.html#wall'}),
+      T('感謝',{eyebrow:'謝謝您',title:'謝謝各位親友的蒞臨',sub:'願這份喜悅陪您回家'})]}
+    else if(kind==='blank')base.scenes=[T('標題',{title:'活動名稱',sub:'副標題'})];
+    else{const info={classic:['2026 迎春納福尾牙','鼎豐實業'],logistics:['2026 使命必達尾牙','速捷物流'],tech:['2026 Year-End Party 尾牙','晶創科技']}[kit];
+      Object.assign(base,{name:info[0],logoText:info[1]});base.scenes=[
+      newScene('slideshow',{name:'入場等候輪播',caption:'歡迎蒞臨・晚宴即將開始'}),
+      newScene('countdown',{name:'晚宴倒數',title:'晚宴即將開始',minutes:10,endText:'晚宴開始'}),
+      G('checkin'),
+      T('開場主視覺',{eyebrow:info[1],title:info[0],sub:'感謝每一位夥伴這一年的努力'}),
+      G('lights'),
+      T('董事長致詞',Object.assign({eyebrow:'第一部分',title:'董事長致詞'},pause)),
+      newScene('video',{name:'年度回顧影片',end:'logo'}),
+      G('tug'),G('quiz'),G('rapid'),G('rain'),G('db'),G('board'),
+      T('年度績優頒獎',{eyebrow:'第二部分',title:'年度績優頒獎',sub:'恭喜每一位得獎的夥伴'}),
+      G('lottery'),
+      T('散場',{eyebrow:'謝謝大家',title:'明年見！',sub:'回家路上請注意安全'})]}
+    return base;
+  }
+  function normalize(s){const kit=KITS[s.kit]?s.kit:'classic';const d=templateShow('blank');s=Object.assign({},d,s,{kit});
+    s.settings=Object.assign({},d.settings,s.settings||{});s.theme=Object.assign({},d.theme,s.theme||{});
+    s.media=s.media||{};s.playlist=Array.isArray(s.playlist)?s.playlist:[];s.sfx=Array.isArray(s.sfx)?s.sfx:[];
+    s.scenes=(s.scenes||[]).filter(x=>x&&TYPES[x.type]&&(x.type!=='game'||GAME_META[x.game])).map(x=>Object.assign({id:uid(),name:x.type==='game'?gameName(kit,x.game):TYPES[x.type].label,bgm:{action:'keep',track:null}},TYPES[x.type].make(),x.type==='game'?gameDefaults(x.game,kit):{},x));
+    return s}
+  async function sampleImage(i){const c=document.createElement('canvas');c.width=1600;c.height=900;const x=c.getContext('2d');
+    const hs=[[24,62,42],[6,58,34],[38,64,46],[350,48,36]][i%4];
+    const g=x.createLinearGradient(0,0,1600,900);g.addColorStop(0,`hsl(${hs[0]},${hs[1]}%,${hs[2]+14}%)`);g.addColorStop(1,`hsl(${hs[0]+18},${hs[1]-12}%,${hs[2]-20}%)`);x.fillStyle=g;x.fillRect(0,0,1600,900);
+    for(let k=0;k<28;k++){x.fillStyle=`hsla(${36+Math.random()*24},90%,78%,${.05+Math.random()*.14})`;x.beginPath();x.arc(Math.random()*1600,Math.random()*900,30+Math.random()*150,0,7);x.fill()}
+    x.textAlign='center';x.fillStyle='rgba(255,255,255,.9)';x.font='700 66px "Noto Sans TC","Microsoft JhengHei",sans-serif';x.fillText('範例照片 '+(i+1),800,465);
+    x.fillStyle='rgba(255,255,255,.62)';x.font='400 30px "Noto Sans TC","Microsoft JhengHei",sans-serif';x.fillText('在畫面設定中換成活動照片',800,525);
+    return new Promise(r=>c.toBlob(b=>r(new File([b],`範例照片-${i+1}.jpg`,{type:'image/jpeg'})),'image/jpeg',.85))}
+  async function sampleShow(kind){const s=templateShow(kind);s.name+='（範例）';s.sample=true;show=s;
+    const files=[];for(let i=0;i<4;i++)files.push(await sampleImage(i));const ids=await storeFiles(files,true);s.sample=true;
+    s.scenes[0].images=ids;return s}
+
+  /* ---------- 儲存 ---------- */
+  let saveT=0;
+  function save(){clearTimeout(saveT);saveT=setTimeout(()=>{idb.put('kv','show',show).catch(e=>toast('無法儲存到這台電腦：'+(e&&e.message||e),'err'))},250)}
+  async function storeFiles(files,quiet){const ids=[];if(!quiet&&files.some(f=>f.size>40e6))toast('正在存入素材，檔案較大請稍候…');
+    for(const f of files){const id=uid();try{await idb.put('media',id,f)}catch(e){toast('「'+f.name+'」存入失敗：'+(e&&e.message||'儲存空間不足'),'err');continue}
+      show.media[id]={name:f.name,type:f.type,size:f.size};missing.delete(id);await loadURL(id);ids.push(id)}
+    touched();save();return ids}
+  function pickFiles(accept,multi,cb){const i=document.createElement('input');i.type='file';i.accept=accept;i.multiple=!!multi;i.onchange=()=>{if(i.files&&i.files.length)cb([...i.files])};i.click()}
+  function usedIds(){const s=new Set();show.scenes.forEach(sc=>{sceneIds(sc).forEach(i=>s.add(i));if(sc.bgm&&sc.bgm.track)s.add(sc.bgm.track)});
+    show.playlist.forEach(i=>s.add(i));show.sfx.forEach(x=>s.add(x.media));if(show.logo)s.add(show.logo);return[...s].filter(Boolean)}
+  async function computeMissing(){let keys=[];try{keys=await idb.keys('media')}catch(e){}const k=new Set(keys);missing=new Set(usedIds().filter(id=>!k.has(id)))}
+  async function gc(){const used=new Set(usedIds());if(pgm.scene)sceneIds(pgm.scene).forEach(i=>used.add(i));let n=0,bytes=0;
+    for(const k of await idb.keys('media')){if(!used.has(k)){bytes+=(show.media[k]&&show.media[k].size)||0;await idb.del('media',k);n++;const u=urlCache.get(k);if(u){URL.revokeObjectURL(u);urlCache.delete(k)}}}
+    Object.keys(show.media).forEach(k=>{if(!used.has(k))delete show.media[k]});save();return{n,bytes}}
+
+  /* ---------- 監看與切換 ---------- */
+  const rs=(sc,o)=>renderScene(sc,Object.assign({env:env()},o,sc.type==='game'?{vs:gameVS(sc)}:{}));
+  function applyAspect(){const p=(show.aspect||'16/9').split('/').map(Number);const r=document.documentElement.style;r.setProperty('--aspect',p[0]+'/'+p[1]);r.setProperty('--ar',(p[0]/p[1]).toFixed(4))}
+  const ro=new ResizeObserver(es=>es.forEach(en=>en.target.style.setProperty('--k',(en.target.clientWidth/1920).toFixed(4))));
+  ['#pvwScreen','#pgmScreen','#edPreview','#gScreen'].forEach(s=>ro.observe($(s)));
+  const seekMid=v=>{if(v)v.addEventListener('loadedmetadata',()=>{try{v.currentTime=Math.min(1,(v.duration||2)/2)}catch(e){}},{once:true})};
+
+  function setPreview(id){
+    const sc=id?findScene(id):null;pvwId=sc?sc.id:null;
+    const el=sc?rs(sc,{role:'preview',startedAt:Date.now()}):null;
+    mount($('#pvwScreen'),el,{type:'cut'});seekMid(el&&el.querySelector('video'));
+    $('#pvwName').textContent=sc?sc.name:'—';$('#btnTake').disabled=!sc;tally();
+  }
+  function mountPgm(tr){
+    const sc=pgm.scene;const el=sc?(sc.type==='game'&&findScene(sc.id)?rs(findScene(sc.id),{role:'program',startedAt:pgm.startedAt}):renderScene(sc,{role:'program',startedAt:pgm.startedAt,env:env()})):null;
+    mount($('#pgmScreen'),el,tr||{type:'cut'});$('#pgmName').textContent=sc?sc.name:'—';
+    const v=el&&el.querySelector('video');
+    if(v){v.loop=sc.end==='loop';if(sc.autoplay!==false)v.play().catch(()=>{});
+      v.addEventListener('ended',()=>{if(!outOn()&&sc.end==='logo'&&pgm.id===sc.id)take(BUILTIN.logo)})}
+    renderVideoBox();
+  }
+  function take(sc,cut){
+    if(!sc)return;
+    const tr=cut||S().transition==='cut'?{type:'cut',ms:0}:{type:'fade',ms:S().fadeMs};
+    pgm={id:sc.id,scene:clone(sc),startedAt:Date.now()};
+    send({t:'program',scene:pgm.scene,startedAt:pgm.startedAt,tr,env:env(),vs:sc.type==='game'?gameVS(sc):null});
+    mountPgm(tr);
+    const b=sc.bgm||{};
+    if(b.action==='pause')send({t:'bgm',op:'fadeout'});
+    else if(b.action==='play'&&b.track){const i=show.playlist.indexOf(b.track);if(i>-1)send({t:'bgm',op:'play',index:i})}
+    if(S().autoNext&&sc.id===pvwId&&tab==='direct'){const i=show.scenes.findIndex(s=>s.id===sc.id);const nx=show.scenes[i+1];if(nx)setPreview(nx.id)}
+    tally();if(tab==='game'){renderGlist();updateGameHead()}
+  }
+  function tally(){$$('#bin .card[data-id]').forEach(c=>{const id=c.dataset.id;c.classList.toggle('is-pvw',id===pvwId&&id!==pgm.id);c.classList.toggle('is-pgm',id===pgm.id);
+    const f=$('.flag',c);if(f)f.textContent=id===pgm.id?'播出':id===pvwId?'預覽':''})}
+  function setTransition(t){S().transition=t;$$('#trSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tr===t)));$('#fadeMs').disabled=t==='cut';save()}
+
+  /* ---------- 候選畫面 ---------- */
+  const bgmTag=sc=>!sc.bgm?'':sc.bgm.action==='pause'?'・音樂淡出':sc.bgm.action==='play'?'・換音樂':'';
+  function cardHTML(sc,i){const g=sc.type==='game';
+    return `<div class="thumb screen"></div><div class="meta"><span class="num">${i<9?i+1:i===9?0:'·'}</span><b class="nm" title="${esc(sc.name)}">${esc(sc.name)}</b><span class="type">${esc(typeLabel(sc))}${bgmTag(sc)}</span></div>
+      <div class="acts">${g?'<button type="button" class="btn sm" data-act="op">操作</button>':''}<button type="button" class="btn sm" data-act="edit">設定</button>${g?'':'<button type="button" class="btn sm" data-act="dup">複製</button>'}<button type="button" class="btn sm danger" data-act="del">刪除</button></div><span class="flag"></span>`}
+  function renderBin(){const bin=$('#bin');bin.innerHTML='';
+    show.scenes.forEach((sc,i)=>{const c=document.createElement('div');c.className='card';c.dataset.id=sc.id;c.draggable=true;c.tabIndex=0;c.innerHTML=cardHTML(sc,i);
+      $('.thumb',c).appendChild(rs(sc,{role:'thumb',startedAt:0}));bin.appendChild(c)});
+    const a=document.createElement('button');a.type='button';a.className='card add';a.innerHTML='<b>＋</b><span>新增畫面或遊戲</span>';bin.appendChild(a);
+    tally();tickScenes()}
+  function refreshCard(sc){const c=$(`#bin .card[data-id="${sc.id}"]`);if(!c){renderBin();return}const i=show.scenes.indexOf(sc);c.innerHTML=cardHTML(sc,i);$('.thumb',c).appendChild(rs(sc,{role:'thumb',startedAt:0}));tally();tickScenes()}
+
+  $('#bin').addEventListener('click',e=>{const c=e.target.closest('.card');if(!c)return;
+    if(c.classList.contains('add')){openAdd();return}
+    const a=e.target.closest('[data-act]');const id=c.dataset.id;
+    if(a){const k=a.dataset.act;if(k==='edit')openEditor(id);else if(k==='dup')dupScene(id);else if(k==='op'){setTab('game');selectGame(id)}else delScene(id);return}
+    setPreview(id)});
+  $('#bin').addEventListener('dblclick',e=>{const c=e.target.closest('.card[data-id]');if(c&&!e.target.closest('[data-act]'))openEditor(c.dataset.id)});
+  let dragId=null;
+  $('#bin').addEventListener('dragstart',e=>{const c=e.target.closest('.card[data-id]');if(!c)return;dragId=c.dataset.id;c.classList.add('dragging');e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId)}catch(x){}});
+  $('#bin').addEventListener('dragend',()=>{dragId=null;$$('#bin .card').forEach(c=>c.classList.remove('dragging','drop-before','drop-after'))});
+  $('#bin').addEventListener('dragover',e=>{const c=e.target.closest('.card[data-id]');if(!dragId||!c)return;e.preventDefault();const r=c.getBoundingClientRect();const after=e.clientX>r.left+r.width/2;
+    $$('#bin .card').forEach(x=>{if(x!==c)x.classList.remove('drop-before','drop-after')});c.classList.toggle('drop-after',after);c.classList.toggle('drop-before',!after)});
+  $('#bin').addEventListener('drop',e=>{const c=e.target.closest('.card[data-id]');if(!dragId||!c)return;e.preventDefault();const after=c.classList.contains('drop-after');
+    const from=show.scenes.findIndex(s=>s.id===dragId);if(from<0)return;const[m]=show.scenes.splice(from,1);let to=show.scenes.findIndex(s=>s.id===c.dataset.id);if(to<0)to=show.scenes.length;if(after)to++;show.scenes.splice(to,0,m);touched();save();renderBin()});
+
+  function insertScene(sc){const i=show.scenes.findIndex(s=>s.id===(tab==='game'?gSel:pvwId));show.scenes.splice(i<0?show.scenes.length:i+1,0,sc);touched();save();renderBin()}
+  function addScene(type){const sc=newScene(type);insertScene(sc);setPreview(sc.id);openEditor(sc.id)}
+  function addGame(g){const sc=newGame(g);insertScene(sc);if(tab==='game')selectGame(sc.id);else setPreview(sc.id);toast('已加入「'+sc.name+'」，到遊戲台就能操作')}
+  function dupScene(id){const i=show.scenes.findIndex(s=>s.id===id);if(i<0)return;const c=clone(show.scenes[i]);c.id=uid();c.name+='（複製）';show.scenes.splice(i+1,0,c);touched();save();renderBin()}
+  async function delScene(id){const sc=findScene(id);if(!sc)return;const r=await ask('刪除畫面','確定要刪除「'+sc.name+'」？'+(id===pgm.id?'它正在播出，投影畫面會保留到下一次切換。':''),[['cancel','取消'],['del','刪除','danger']]);if(r!=='del')return;
+    stopG(id);delete R.games[id];show.scenes=show.scenes.filter(s=>s.id!==id);if(pvwId===id)setPreview(null);if(gSel===id)gSel=null;touched();save();saveR();renderBin();if(tab==='game')setTab('game')}
+  function openAdd(){const k=show.kit;
+    $('#addBody').innerHTML=`<h3 class="add-h">畫面</h3><div class="types">${Object.entries(TYPES).filter(([t])=>t!=='game').map(([t,v])=>`<button type="button" class="opt" data-type="${t}"><b>${v.label}</b><span>${v.desc}</span></button>`).join('')}</div>`+
+      GAME_CATS.map(c=>`<h3 class="add-h">互動遊戲・${c}</h3><div class="types">${Object.entries(GAME_META).filter(([,m])=>m.cat===c).map(([g,m])=>`<button type="button" class="opt" data-game="${g}"><b>${esc(gameName(k,g))}</b><span>${esc(m.desc)}</span></button>`).join('')}</div>`).join('');
+    $('#dlgAdd').showModal()}
+  $('#addBody').addEventListener('click',e=>{const t=e.target.closest('[data-type]'),g=e.target.closest('[data-game]');if(!t&&!g)return;$('#dlgAdd').close();if(t)addScene(t.dataset.type);else addGame(g.dataset.game)});
+
+  /* ---------- 畫面設定 ---------- */
+  const F=(label,inner,hint)=>`<label class="f"><span>${label}</span>${inner}${hint?`<small>${hint}</small>`:''}</label>`;
+  const txt=(k,v,ph)=>`<input type="text" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph||'')}">`;
+  const area=(k,v,rows)=>`<textarea rows="${rows||2}" data-k="${k}">${esc(v)}</textarea>`;
+  const num=(k,v,min,max)=>`<input type="number" data-k="${k}" value="${esc(v)}" min="${min}" max="${max}">`;
+  const sel=(k,v,opts)=>`<select data-k="${k}">${opts.map(([a,b])=>`<option value="${esc(a)}"${String(v)===String(a)?' selected':''}>${esc(b)}</option>`).join('')}</select>`;
+  const rng=(k,v,min,max,step)=>`<input type="range" data-k="${k}" value="${v}" min="${min}" max="${max}" step="${step}">`;
+  const chk=(k,v,label)=>`<label class="check"><input type="checkbox" data-k="${k}"${v?' checked':''}> ${label}</label>`;
+  function mediaF(k,id,accept,label,hint){const m=id&&show.media[id];
+    return `<div class="f"><span>${label}</span><div class="mpick"><span class="mname">${m?esc(m.name)+' <small>'+fmtSize(m.size)+'</small>'+(missing.has(id)?' <em class="bad">缺檔</em>':''):'尚未選擇'}</span><button type="button" class="btn sm" data-pick="${k}" data-accept="${accept}">${id?'更換':'選擇檔案'}</button>${id?`<button type="button" class="btn sm" data-clear="${k}">移除</button>`:''}</div>${hint?`<small>${hint}</small>`:''}</div>`}
+  function gameFields(sc){switch(sc.game){
+    case 'quiz':{const n=parseQuiz(sc.text).length;return F(`題目（目前 ${n} 題）`,area('text',sc.text,13),'每題一段：第一行是題目，下面 2–4 行是選項，正確答案前面加 *。題目之間空一行。')+F('作答秒數',num('secs',sc.secs,3,60))}
+    case 'rapid':{const n=parseRapid(sc.text,sc.a,sc.b).length;return `<div class="row2">${F('左邊選項',txt('a',sc.a))}${F('右邊選項',txt('b',sc.b))}</div>`+F(`題目（目前 ${n} 題）`,area('text',sc.text,9),'一行一題。要預設答案就在題目後面加「= 答案」，例如「誰先告白的？ = 新郎」；不預設就由主持人現場按。')+F('作答秒數',num('secs',sc.secs,2,30))}
+    case 'vote':return F('投票題目',txt('title',sc.title))+F(`選項（目前 ${parseOpts(sc.text).length} 個）`,area('text',sc.text,6),'一行一個選項。要加說明就用「｜」隔開，例如「熱舞串燒｜客服部」。')+chk('hide',sc.hide,'截止前不公開票數');
+    case 'lottery':return F('獎項',area('text',sc.text,6),'一行一個獎項：名稱｜品項｜名額，例如「頭獎｜現金 NT$66,666｜1」。');
+    case 'guess':return `<div class="row2">${F('最小值',num('min',sc.min,0,9999))}${F('最大值',num('max',sc.max,2,9999))}</div><p class="hint">改了範圍之後，到遊戲台按「重新出題」才會生效。</p>`;
+    case 'rain':return F('持續秒數',num('secs',sc.secs,5,60));
+    case 'board':return F('排行榜標題',txt('title',sc.title))+`<div class="row2">${F('顯示',sel('mode',sc.mode,[['person','個人排行'],['team',K().teamWord+'排行']]))}${F('顯示幾名',num('n',sc.n,3,10))}</div>`;
+    default:return '<p class="hint">這個遊戲沒有額外設定，操作都在「遊戲台」分頁。</p>'}}
+  function fieldsFor(sc){
+    let h=F('畫面名稱',txt('name',sc.name),'會顯示在投影畫面左上角與導播台');
+    switch(sc.type){
+      case 'title':h+=F('小標',txt('eyebrow',sc.eyebrow,'例如：第一部分'))+F('主標題',area('title',sc.title),'可以換行')+F('副標',txt('sub',sc.sub))+mediaF('bg',sc.bg,'image/*','背景圖片（選填）')+(sc.bg?F('背景變暗',rng('dim',sc.dim,0,.85,.05)):'');break;
+      case 'countdown':h+=F('標題',txt('title',sc.title))+F('倒數方式',sel('mode',sc.mode,[['min','倒數幾分鐘（切換上投影時開始）'],['until','倒數到指定時間']]))+
+        (sc.mode==='until'?F('目標時間',`<input type="time" data-k="until" value="${esc(sc.until)}">`):F('分鐘數',num('minutes',sc.minutes,1,600)))+F('時間到時顯示',txt('endText',sc.endText,'留白則停在 00:00'));break;
+      case 'image':h+=mediaF('media',sc.media,'image/*','圖片')+F('顯示方式',sel('fit',sc.fit,[['contain','完整顯示（可能有黑邊）'],['cover','填滿畫面（可能裁切）']]));break;
+      case 'slideshow':h+=`<div class="f"><span>照片（${sc.images.length} 張）</span><div class="slides">${sc.images.map((id,i)=>`<div class="sl"><img src="${urlOf(id)||''}" alt=""><div><button type="button" data-sl-up="${i}" title="往前移">←</button><button type="button" data-sl-del="${i}" title="移除">×</button></div></div>`).join('')}<button type="button" class="btn sl-add" data-pick="images" data-accept="image/*" data-multi="1">＋ 加入照片</button></div></div>`+
+        F('每張秒數',num('iv',sc.iv,2,120))+F('顯示方式',sel('fit',sc.fit,[['cover','填滿畫面'],['contain','完整顯示']]))+F('底部說明文字（選填）',txt('caption',sc.caption));break;
+      case 'video':h+=mediaF('media',sc.media,'video/*','影片檔','建議用 MP4（H.264），在 Chrome 播放最穩定')+chk('autoplay',sc.autoplay!==false,'切換上投影時自動播放')+
+        F('播完後',sel('end',sc.end,[['hold','停在最後一格'],['loop','重複播放'],['logo','自動切到 Logo']]))+F('影片音量',rng('volume',sc.volume==null?1:sc.volume,0,1,.05));break;
+      case 'web':h+=F('網址',txt('url',sc.url,'例如 wedding-wall.html#wall 或 https://…'),'放在同一個網站的頁面最穩定。有些外部網站不允許被嵌入，會顯示空白。');break;
+      case 'game':h+=gameFields(sc);break;
+    }
+    const b=sc.bgm||{action:'keep'};
+    h+='<hr class="sep">'+F('切到這個畫面時的背景音樂',sel('bgm.action',b.action,[['keep','不變'],['pause','淡出暫停'],['play','播放指定曲目']]));
+    if(b.action==='play')h+=show.playlist.length?F('曲目',sel('bgm.track',b.track||'',show.playlist.map(id=>[id,show.media[id]?show.media[id].name:'(未知)']))):'<p class="notice">先在右側「背景音樂」加入曲目，才能指定。</p>';
+    return h;
+  }
+  function openEditor(id){edId=id;buildEditor();if(!$('#dlgScene').open)$('#dlgScene').showModal()}
+  function buildEditor(){const sc=findScene(edId);if(!sc)return;$('#edType').textContent=typeLabel(sc);$('#edFields').innerHTML=fieldsFor(sc);edPreview(sc);$('#edApply').hidden=pgm.id!==sc.id||sc.type==='game'}
+  function edPreview(sc){const el=rs(sc,{role:'preview',startedAt:Date.now()});mount($('#edPreview'),el,{type:'cut'});seekMid(el.querySelector('video'))}
+  let edT=0;
+  function changed(sc,rebuild){touched();save();if(rebuild)buildEditor();
+    if(sc.type==='game'){const c=GC[sc.game];if(c&&c.fix)c.fix(gs(sc),sc);dirty(sc.id,true)}
+    clearTimeout(edT);edT=setTimeout(()=>{if(!rebuild)edPreview(sc);refreshCard(sc);if(pvwId===sc.id)setPreview(sc.id);$('#edApply').hidden=pgm.id!==sc.id||sc.type==='game';if(tab==='game'&&gSel===sc.id){renderGlist();updateGameHead()}},rebuild?0:250)}
+  const edFields=$('#edFields');
+  function onField(e){const t=e.target,k=t.dataset&&t.dataset.k;if(!k)return;const sc=findScene(edId);if(!sc)return;
+    const v=t.type==='checkbox'?t.checked:(t.type==='number'||t.type==='range')?+t.value:t.value;
+    if(k.startsWith('bgm.')){sc.bgm=sc.bgm||{action:'keep',track:null};sc.bgm[k.slice(4)]=v||null;if(k==='bgm.action'&&v==='play'&&!sc.bgm.track)sc.bgm.track=show.playlist[0]||null}
+    else sc[k]=v;
+    changed(sc,e.type==='change'&&(k==='mode'&&sc.type==='countdown'||k==='bgm.action'))}
+  edFields.addEventListener('input',onField);
+  edFields.addEventListener('change',e=>{if(e.target.matches('select,input[type=checkbox],input[type=time]'))onField(e)});
+  edFields.addEventListener('click',e=>{const sc=findScene(edId);if(!sc)return;
+    const p=e.target.closest('[data-pick]');
+    if(p){const k=p.dataset.pick;pickFiles(p.dataset.accept,!!p.dataset.multi,async files=>{const ids=await storeFiles(files);if(!ids.length)return;if(k==='images')sc.images.push(...ids);else sc[k]=ids[0];changed(sc,true)});return}
+    const c=e.target.closest('[data-clear]');if(c){sc[c.dataset.clear]=null;changed(sc,true);return}
+    const up=e.target.closest('[data-sl-up]');if(up){const i=+up.dataset.slUp;if(i>0){const a=sc.images;[a[i-1],a[i]]=[a[i],a[i-1]];changed(sc,true)}return}
+    const del=e.target.closest('[data-sl-del]');if(del){sc.images.splice(+del.dataset.slDel,1);changed(sc,true)}});
+  $('#edApply').addEventListener('click',()=>{const sc=findScene(edId);if(!sc||pgm.id!==sc.id)return;pgm.scene=clone(sc);send({t:'program',scene:pgm.scene,startedAt:pgm.startedAt,tr:{type:'cut'},env:env(),vs:null});mountPgm({type:'cut'});toast('已把修改套用到投影')});
+  $('#dlgScene').addEventListener('close',()=>{$$('#edPreview .scene').forEach(kill);renderBin();if(tab==='game'){renderGlist();renderGameView();renderPanel()}});
+  GC.quiz.fix=(st,sc)=>{const n=parseQuiz(sc.text).length;if(st.qi>=n)st.qi=Math.max(0,n-1)};
+  GC.rapid.fix=(st,sc)=>{const n=parseRapid(sc.text,sc.a,sc.b).length;if(st.qi>=n)st.qi=Math.max(0,n-1)};
+  GC.lottery.fix=(st,sc)=>{const n=lotPrizes(st,sc).length;if(st.pi>=n)st.pi=0};
+
+  /* ---------- 遊戲台 ---------- */
+  function setTab(t){tab=t;$$('.tabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+    $('#tabDirect').hidden=t!=='direct';$('#tabGame').hidden=t!=='game';$('#tabScore').hidden=t!=='score';
+    if(t==='game'){if(!gSel||!findScene(gSel)){const p=pvwId&&findScene(pvwId);gSel=p&&p.type==='game'?p.id:((show.scenes.find(s=>s.type==='game')||{}).id||null)}renderGlist();renderGameView();renderCue();renderPanel()}
+    else $$('#gScreen .scene').forEach(kill);
+    if(t==='score')renderScore()}
+  function renderGlist(){const games=show.scenes.filter(s=>s.type==='game'),by={};games.forEach(s=>{const c=GAME_META[s.game].cat;(by[c]=by[c]||[]).push(s)});
+    $('#glist').innerHTML=(games.length?GAME_CATS.filter(c=>by[c]).map(c=>`<div><h3>${c}</h3><ol>${by[c].map(s=>`<li><button type="button" class="gl-item${s.id===pgm.id?' live':''}" data-gid="${s.id}" aria-current="${s.id===gSel}"><b>${esc(s.name)}</b><small>${esc(GAME_META[s.game].label)}</small></button></li>`).join('')}</ol></div>`).join(''):'<p class="empty">這個場次還沒有遊戲。</p>')+'<button type="button" class="btn" id="gAdd">＋ 新增遊戲</button>'}
+  function selectGame(id){gSel=id;renderGlist();renderGameView();renderCue();renderPanel();if(id&&pvwId!==id)setPreview(id)}
+  function renderGameView(){const sc=gSel&&findScene(gSel);mount($('#gScreen'),sc?rs(sc,{role:'preview',startedAt:Date.now()}):null,{type:'cut'});updateGameHead()}
+  function updateGameHead(){const sc=gSel&&findScene(gSel),live=!!sc&&pgm.id===sc.id;$('#gName').textContent=sc?sc.name:'—';const st=$('#gSt');st.textContent=live?'播出中':'未播出';st.classList.toggle('live',live);
+    $('#gScreen').classList.toggle('live',live);const b=$('#gTake');b.disabled=!sc||live;b.textContent=live?'正在投影上':'送上投影'}
+  function renderCue(){const sc=gSel&&findScene(gSel);const lines=sc&&sc.type==='game'?(K().cue[sc.game]||BASE_CUE[sc.game]||[]):[];
+    $('#gCue').innerHTML=sc?`<header><b>主持手卡｜${esc(sc.name)}</b><span>${esc(GAME_META[sc.game].cat)}</span></header><ol>${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ol>`:''}
+  function renderPanel(){const box=$('#gCtl');const sc=gSel&&findScene(gSel);
+    if(!sc||sc.type!=='game'){box.innerHTML='<p class="empty">左邊選一個遊戲開始操作。這個場次還沒有遊戲的話，按「＋ 新增遊戲」。</p>';return}
+    const ae=document.activeElement,keep=ae&&box.contains(ae)&&ae.matches('input[type=text],input[type=number]')?{id:ae.id,gs:ae.dataset.gs,val:ae.value,pos:ae.selectionStart}:null;
+    box.innerHTML=`<h3>${esc(GAME_META[sc.game].label)}・控制<button type="button" class="linkbtn" data-ga="__edit">畫面設定</button></h3>${GC[sc.game].panel(gs(sc),sc)}<hr class="sep"><button type="button" class="btn ghost sm" data-ga="__reset">重設這個遊戲</button>`;
+    if(keep){const el=keep.id?$('#'+keep.id,box):keep.gs?$(`[data-gs="${keep.gs}"]`,box):null;if(el){el.value=keep.val;el.focus();try{if(keep.pos!=null)el.setSelectionRange(keep.pos,keep.pos)}catch(e){}}}}
+  $('#glist').addEventListener('click',e=>{const b=e.target.closest('[data-gid]');if(b){selectGame(b.dataset.gid);return}if(e.target.closest('#gAdd'))openAdd()});
+  $('#gTake').addEventListener('click',()=>{const sc=gSel&&findScene(gSel);if(sc)take(sc)});
+  const gCtl=$('#gCtl');
+  gCtl.addEventListener('click',async e=>{const b=e.target.closest('[data-ga]');if(!b||b.disabled)return;const sc=gSel&&findScene(gSel);if(!sc)return;const a=b.dataset.ga;
+    if(a==='__edit'){openEditor(sc.id);return}
+    if(a==='__reset'){const r=await ask('重設遊戲','「'+sc.name+'」會回到一開始的狀態'+(sc.game==='quiz'||sc.game==='rapid'?'，這個遊戲給的積分也會扣回。':'。'),[['cancel','取消'],['ok','重設','danger']]);if(r!=='ok')return;
+      stopG(sc.id);const c=GC[sc.game];if(c.reset)c.reset(gs(sc));R.games[sc.id]=c.init(sc);dirty(sc.id,true);return}
+    GC[sc.game].act(gs(sc),a,sc,b.dataset.v);dirty(sc.id,true)});
+  gCtl.addEventListener('input',e=>{const t=e.target,k=t.dataset.gs;if(!k)return;const sc=gSel&&findScene(gSel);if(!sc)return;
+    const v=t.dataset.bool?t.checked:t.dataset.num?+t.value:t.value;if(t.dataset.scene){sc[k]=v;touched();save()}else gs(sc)[k]=v;dirty(sc.id)});
+  const hold=on=>e=>{const b=e.target.closest('[data-hold]');if(!b&&on)return;const sc=gSel&&findScene(gSel);if(!sc||sc.game!=='db')return;const st=gs(sc);if(on){e.preventDefault();st.hold=true;if(b)b.textContent='歡呼中…'}else if(st.hold){st.hold=false;const x=$('[data-hold]',gCtl);if(x)x.textContent='按住模擬歡呼'}};
+  gCtl.addEventListener('pointerdown',hold(true));addEventListener('pointerup',hold(false));gCtl.addEventListener('pointerleave',hold(false));
+
+  /* ---------- 計分排名 ---------- */
+  function renderScore(){const P=Object.entries(R.scores).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,20),k=K();
+    $('#rkP').innerHTML=P.map(([id,v],i)=>{const p=PBY[id];return `<li class="${i<3?'top':''}"><em>${i+1}</em><span>${esc(p?p.name:id)}<small>${esc(p?p.team:'')}</small></span><strong>${fmtN(v)}</strong></li>`}).join('')||'<li class="empty">還沒有人得分。問答或快問快答公布答案後，分數會出現在這裡。</li>';
+    const T=teamRank();$('#rkTH').textContent=k.teamWord+'排行（平均分）';$('#saTeam').textContent=k.teamWord+'排行送上投影';
+    $('#rkT').innerHTML=T.map((t,i)=>`<li class="${i<3?'top':''}"><em>${i+1}</em><span>${esc(t.name)}<small>${esc(t.sub)}</small></span><strong>${fmtN(t.score)}</strong></li>`).join('')||'<li class="empty">還沒有分數</li>';
+    $('#rosterFacts').innerHTML=`<dt>活動套組</dt><dd>${esc(k.label)}</dd><dt>名單人數</dt><dd>${R.people.length}</dd><dt>${esc(k.L.checked)}</dt><dd>${CK.size}</dd><dt>有得分</dt><dd>${Object.values(R.scores).filter(v=>v>0).length} 人</dd><dt>分組</dt><dd>${k.groups.length} 個${esc(k.groupWord)}・${new Set(R.people.map(p=>p.team)).size} 個${esc(k.teamWord)}</dd>`}
+  function resetRuntime(seed){stopAllG();R=genRoster(show.kit,seed);indexRoster();R.checked=[...CK];idb.put('kv','runtime',R).catch(()=>{});allGamesDirty();renderBin();if(tab==='game')setTab('game');if(tab==='score')renderScore()}
+  $('#tabScore').addEventListener('click',async e=>{const b=e.target.closest('[data-sa]');if(!b)return;const a=b.dataset.sa;
+    if(a==='board-person'||a==='board-team'){let sc=show.scenes.find(s=>s.type==='game'&&s.game==='board');if(!sc){sc=newGame('board');show.scenes.push(sc);touched();renderBin()}
+      sc.mode=a==='board-team'?'team':'person';save();refreshCard(sc);take(sc);toast('排行榜已送上投影')}
+    else if(a==='reset'){const r=await ask('計分歸零','所有人的積分都會清除，確定嗎？',[['cancel','取消'],['ok','歸零','danger']]);if(r!=='ok')return;R.scores={};Object.values(R.games).forEach(g=>{if(g&&g.award)g.award={}});scoresChanged();renderScore()}
+    else if(a==='regen'){const r=await ask('重新產生示範名單','會換一批模擬來賓，所有遊戲進度與積分都會清除。',[['cancel','取消'],['ok','重新產生','danger']]);if(r!=='ok')return;resetRuntime(Math.floor(Math.random()*1e9));toast('已產生新的示範名單')}});
+  $$('.tabs [data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+
+  /* ---------- 場次設定 ---------- */
+  function openSettings(){renderSettings();$('#dlgSettings').showModal()}
+  async function renderSettings(){const s=show,st=S();
+    $('#setBody').innerHTML=`
+      <div class="row2">${F('場次名稱',`<input type="text" id="sName" value="${esc(s.name)}">`)}${F('活動日期',`<input type="date" id="sDate" value="${esc(s.date)}">`)}</div>
+      ${F('活動套組',`<select id="sKit">${Object.entries(KITS).map(([k,v])=>`<option value="${k}"${s.kit===k?' selected':''}>${esc(v.label)}</option>`).join('')}</select>`,'決定遊戲用語、分組（部門、站點或親友團、桌次）、示範名單與新增遊戲時的預設題目。換套組會清除目前的遊戲進度與積分。')}
+      <div class="row2">${F('投影比例',`<select id="sAspect">${[['16/9','16:9（多數投影機與電視）'],['16/10','16:10'],['4/3','4:3（舊型投影機）']].map(([a,b])=>`<option value="${a}"${s.aspect===a?' selected':''}>${b}</option>`).join('')}</select>`,'影響監看畫面比例；投影視窗會填滿整個螢幕')}
+        ${F('Logo 文字',`<input type="text" id="sLogoText" value="${esc(s.logoText)}" placeholder="沒有 Logo 圖時顯示">`)}</div>
+      ${mediaF('logo',s.logo,'image/*','Logo 圖片（選填，建議透明背景 PNG）')}
+      <div class="f"><span>畫面配色（標題卡、倒數、遊戲畫面都會用）</span><div class="swatches" id="sThemes">${Object.entries(THEMES).map(([k,t])=>`<button type="button" class="sw" data-th="${k}" aria-pressed="${s.theme.preset===k}"><i style="background:linear-gradient(90deg,${t.bg} 55%,${t.accent} 55%)"></i>${t.label}</button>`).join('')}</div></div>
+      <div class="row2">${F('強調色',`<input type="color" id="sAccent" value="${esc(s.theme.accent)}">`)}${F('標題字體',`<select id="sFont"><option value="serif"${s.theme.font==='serif'?' selected':''}>明體（典雅）</option><option value="sans"${s.theme.font==='sans'?' selected':''}>黑體（俐落）</option></select>`)}</div>
+      <hr class="sep">
+      <div class="row2">${F('壓低後的音樂音量 <output class="mono" id="sDuckOut"></output>',`<input type="range" id="sDuck" min="0" max="0.8" step="0.05" value="${st.duckLevel}">`,'影片有聲音時，背景音樂降到這個比例')}${F('音效音量 <output class="mono" id="sSfxOut"></output>',`<input type="range" id="sSfx" min="0" max="1" step="0.05" value="${st.sfxVol}">`)}</div>
+      <hr class="sep">
+      <div class="f"><span>延伸螢幕</span><div class="mpick"><span class="mname">允許後，按「開啟投影視窗」會自動把視窗放到投影螢幕（Chrome、Edge）。</span><button type="button" class="btn sm" id="sScreens">允許偵測螢幕</button></div></div>
+      <div class="f"><span>素材儲存</span><div class="mpick"><span class="mname store" id="sStore">計算中…</span>${missing.size?`<button type="button" class="btn sm" id="sRelink">重新連結 ${missing.size} 個缺少的素材</button>`:''}<button type="button" class="btn sm" id="sGC">清除沒用到的素材</button></div><small>素材存在這台電腦的瀏覽器裡。換電腦或清除瀏覽資料前，請先匯出場次包。</small></div>`;
+    $('#sDuckOut').textContent=Math.round(st.duckLevel*100)+'%';$('#sSfxOut').textContent=Math.round(st.sfxVol*100)+'%';
+    try{const est=navigator.storage&&await navigator.storage.estimate();const tot=Object.values(show.media).reduce((a,m)=>a+(m.size||0),0);$('#sStore').textContent=`這個場次的素材 ${fmtSize(tot)}`+(est&&est.quota?`・瀏覽器可用空間約 ${fmtSize(est.quota-est.usage)}`:'')}catch(e){}
+  }
+  const setBody=$('#setBody');
+  setBody.addEventListener('input',e=>{const t=e.target,st=S();
+    if(t.id==='sName'){show.name=t.value||'未命名場次';$('#showNameTxt').textContent=show.name}
+    else if(t.id==='sDate')show.date=t.value;
+    else if(t.id==='sLogoText'){show.logoText=t.value;envChanged()}
+    else if(t.id==='sAccent'){show.theme.accent=t.value;envChanged()}
+    else if(t.id==='sDuck'){st.duckLevel=+t.value;send({t:'cfg',cfg:audioCfg()});$('#sDuckOut').textContent=Math.round(st.duckLevel*100)+'%'}
+    else if(t.id==='sSfx'){st.sfxVol=+t.value;send({t:'cfg',cfg:audioCfg()});$('#sSfxOut').textContent=Math.round(st.sfxVol*100)+'%'}
+    else return;touched();save()});
+  setBody.addEventListener('change',async e=>{const t=e.target;
+    if(t.id==='sAspect'){show.aspect=t.value;applyAspect()}
+    else if(t.id==='sFont'){show.theme.font=t.value;envChanged()}
+    else if(t.id==='sKit'){const to=t.value;const r=await ask('更換活動套組',`改成「${KITS[to].label}」後，示範名單、遊戲進度與積分都會重新開始。已排好的畫面、題目和素材不受影響。`,[['cancel','取消'],['ok','更換','primary']]);
+      if(r!=='ok'){t.value=show.kit;return}show.kit=to;resetRuntime(Math.floor(Math.random()*1e9));envChanged();toast('已改成「'+KITS[to].label+'」')}
+    else return;touched();save()});
+  setBody.addEventListener('click',async e=>{const th=e.target.closest('[data-th]');
+    if(th){show.theme=Object.assign({preset:th.dataset.th},THEMES[th.dataset.th]);touched();save();envChanged();renderSettings();return}
+    const p=e.target.closest('[data-pick]');if(p){pickFiles('image/*',false,async f=>{const ids=await storeFiles(f);if(ids[0]){show.logo=ids[0];save();envChanged();renderSettings()}});return}
+    if(e.target.closest('[data-clear]')){show.logo=null;save();envChanged();renderSettings();return}
+    if(e.target.id==='sScreens'){try{if(!('getScreenDetails' in window))throw new Error('這個瀏覽器不支援自動偵測，請用 Chrome 或 Edge，或手動把投影視窗拖到投影螢幕');const d=await window.getScreenDetails();toast('偵測到 '+d.screens.length+' 個螢幕'+(d.screens.length>1?'，之後開啟投影視窗會自動放到延伸螢幕':'，請先接上投影機並設定為「延伸」'))}catch(err){toast(err.message||'沒有取得權限','err')}return}
+    if(e.target.id==='sGC'){const r=await gc();toast(r.n?`已清除 ${r.n} 個沒用到的素材（${fmtSize(r.bytes)}）`:'沒有需要清除的素材');renderSettings();return}
+    if(e.target.id==='sRelink')relink()});
+  function envChanged(){send({t:'env',env:env()});renderBin();if(pvwId)setPreview(pvwId);if(pgm.scene&&pgm.scene.type!=='video'&&pgm.scene.type!=='web')mountPgm({type:'cut'});if(tab==='game'){renderGlist();renderGameView();renderCue();renderPanel()}}
+  function relink(){pickFiles('image/*,video/*,audio/*',true,async files=>{let n=0;
+    for(const f of files){const cand=[...missing].filter(id=>show.media[id]&&show.media[id].name===f.name);const id=cand.find(i=>show.media[i].size===f.size)||cand[0];if(!id)continue;
+      try{await idb.put('media',id,f);missing.delete(id);await loadURL(id);n++}catch(e){}}
+    toast(n?`已重新連結 ${n} 個素材`+(missing.size?`，還缺 ${missing.size} 個`:''):'檔名都對不上，請選擇原本的素材檔',n?'':'err');
+    renderBin();if(pvwId)setPreview(pvwId);renderPlaylist();renderSfx();if($('#dlgSettings').open)renderSettings()})}
+
+  /* ---------- 匯出、匯入、新場次 ---------- */
+  function loadJSZip(){if(window.JSZip)return Promise.resolve();return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=res;s.onerror=()=>rej(new Error('無法載入壓縮元件，請確認網路連線'));document.head.appendChild(s)})}
+  function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},5000)}
+  function packCfg(){const cfg=clone(show);delete cfg.sample;cfg.media={};usedIds().forEach(id=>{if(show.media[id])cfg.media[id]=show.media[id]});cfg.exportedAt=new Date().toISOString();return cfg}
+  function openExport(){const used=usedIds();const tot=used.reduce((a,id)=>a+((show.media[id]&&show.media[id].size)||0),0);
+    $('#expSize').textContent=`${used.length} 個素材，約 ${fmtSize(tot)}`+(missing.size?`（有 ${missing.size} 個缺檔不會包含）`:'');
+    $('#expLast').textContent=S().lastExport?'上次匯出：'+new Date(S().lastExport).toLocaleString('zh-TW',{hour12:false}):'這個場次還沒匯出過';
+    $('#expProg').hidden=true;$('#dlgExport').showModal()}
+  $('#expJson').addEventListener('click',()=>{download(new Blob([JSON.stringify(packCfg(),null,2)],{type:'application/json'}),safe(show.name)+'_設定檔.json');S().lastExport=Date.now();save();toast('已匯出設定檔')});
+  $('#expZip').addEventListener('click',async()=>{const bar=$('#expBar'),tx=$('#expTxt');$('#expProg').hidden=false;$('#expZip').disabled=true;
+    try{await loadJSZip();const cfg=packCfg();const zip=new JSZip();zip.file('config.json',JSON.stringify(cfg,null,2));const ids=Object.keys(cfg.media);
+      for(let i=0;i<ids.length;i++){tx.textContent=`讀取素材 ${i+1} / ${ids.length}`;bar.style.width=(i/ids.length*30)+'%';const b=await idb.get('media',ids[i]);if(b)zip.file('media/'+ids[i]+'__'+safe(cfg.media[ids[i]].name),b,{binary:true})}
+      const blob=await zip.generateAsync({type:'blob',compression:'STORE'},m=>{bar.style.width=(30+m.percent*.7)+'%';tx.textContent='打包中 '+Math.round(m.percent)+'%'});
+      download(blob,safe(show.name)+'_場次包.zip');S().lastExport=Date.now();save();tx.textContent='完成，共 '+fmtSize(blob.size);bar.style.width='100%'}
+    catch(e){tx.textContent='匯出失敗：'+(e.message||e);toast('匯出失敗：'+(e.message||e),'err')}
+    $('#expZip').disabled=false});
+  async function replaceShow(s,fresh){stopAllG();show=s;pgm={id:null,scene:null,startedAt:0};send({t:'program',scene:null,startedAt:0,tr:{type:'fade',ms:600},env:env()});mountPgm();
+    await idb.put('kv','show',show);R=genRoster(show.kit,Math.floor(Math.random()*1e9));indexRoster();R.checked=[...CK];await idb.put('kv','runtime',R);gSel=null;await afterLoad()}
+  async function importFile(f){
+    try{let cfg,blobs={};
+      if(/\.json$/i.test(f.name)){cfg=JSON.parse(await f.text())}
+      else{await loadJSZip();toast('讀取場次包中…');const zip=await JSZip.loadAsync(f);const cf=zip.file('config.json');if(!cf)throw new Error('場次包裡找不到 config.json');
+        cfg=JSON.parse(await cf.async('string'));
+        for(const zf of zip.file(/^media\//)){const id=zf.name.slice(6).split('__')[0];const meta=cfg.media&&cfg.media[id];if(!meta)continue;const b=await zf.async('blob');blobs[id]=new Blob([b],{type:meta.type||''})}}
+      if(!cfg||cfg.app!=='amei-director'||!Array.isArray(cfg.scenes))throw new Error('這不是導播台的場次檔');
+      await idb.clear('media');urlCache.forEach(u=>URL.revokeObjectURL(u));urlCache.clear();
+      for(const[id,b] of Object.entries(blobs))await idb.put('media',id,b);
+      const s=normalize(cfg);s.sample=false;await replaceShow(s);
+      if(missing.size)toast(`已匯入「${show.name}」，有 ${missing.size} 個素材需要重新連結`,'',['重新連結',relink]);else toast('已匯入「'+show.name+'」');
+    }catch(e){toast('匯入失敗：'+(e.message||e),'err')}}
+  $('#btnImport').addEventListener('click',async()=>{const r=await ask('匯入場次',`匯入會取代目前的場次「${show.name}」，計分也會歸零。目前的內容還要用的話，請先匯出。`,[['cancel','取消'],['export','先匯出目前場次'],['ok','選擇檔案匯入','primary']]);
+    if(r==='export')openExport();else if(r==='ok')pickFiles('.zip,.json',false,f=>importFile(f[0]))});
+  $('#btnExport').addEventListener('click',openExport);
+  $('#btnNew').addEventListener('click',()=>{$('#newCur').textContent=show.name;$('#dlgNew').showModal()});
+  $('#newExport').addEventListener('click',()=>{$('#dlgNew').close();openExport()});
+  $$('#dlgNew [data-tpl]').forEach(b=>b.addEventListener('click',async()=>{$('#dlgNew').close();
+    await idb.clear('media');urlCache.forEach(u=>URL.revokeObjectURL(u));urlCache.clear();
+    await replaceShow(templateShow(b.dataset.tpl));toast('已建立新場次「'+show.name+'」')}));
+
+  /* ---------- 投影視窗 ---------- */
+  async function openOutput(){let feat='popup=yes,width=1280,height=720';
+    try{if('getScreenDetails' in window&&navigator.permissions){const p=await navigator.permissions.query({name:'window-management'});
+      if(p.state==='granted'){const d=await window.getScreenDetails();const ext=d.screens.find(s=>s!==d.currentScreen);if(ext)feat=`popup=yes,left=${ext.availLeft},top=${ext.availTop},width=${ext.availWidth},height=${ext.availHeight}`}}}catch(e){}
+    const w=window.open(location.pathname+'#output','amei-output',feat);
+    if(!w){toast('瀏覽器擋下了新視窗：請在網址列右側允許「彈出式視窗」，再按一次','err');return}
+    try{w.focus()}catch(e){}
+    if(!outOn())toast('把新視窗拖到投影螢幕，在上面點一下就會全螢幕')}
+  $('#btnOpenOut').addEventListener('click',openOutput);
+
+  if(ch)ch.onmessage=e=>{const m=e.data||{};
+    switch(m.t){
+      case 'hello':{const sc=pgm.scene&&pgm.scene.type==='game'&&findScene(pgm.id);send({t:'sync',scene:pgm.scene,startedAt:pgm.startedAt,env:env(),cfg:audioCfg(),list:plMsg(),vs:sc?gameVS(sc):null});break}
+      case 'status':Object.assign(outS,m,{last:Date.now()});break;
+      case 'state':if(!pgm.scene&&m.scene){pgm={id:m.scene.id,scene:m.scene,startedAt:m.startedAt};mountPgm();tally();if(m.scene.type==='game')DIRTY.add(m.scene.id)}break;
+      case 'video-ended':if(pgm.id===m.id&&pgm.scene&&pgm.scene.end==='logo')take(BUILTIN.logo);break;
+      case 'bye':outS.last=0;break;
+    }};
+
+  /* ---------- 影片控制 ---------- */
+  const pgmVideo=()=>$('#pgmScreen .scene:last-child video');
+  function vidInfo(){if(outOn()&&outS.video)return outS.video;const v=pgmVideo();return v?{t:v.currentTime,d:v.duration||0,paused:v.paused,vol:pgm.scene&&pgm.scene.volume}:null}
+  function vidOp(op,val){send({t:'video',op,v:val});const v=pgmVideo();if(!v)return;
+    if(op==='play')v.play().catch(()=>{});else if(op==='pause')v.pause();else if(op==='restart'){v.currentTime=0;v.play().catch(()=>{})}else if(op==='seek')v.currentTime=val}
+  function renderVideoBox(){const on=!!(pgm.scene&&pgm.scene.type==='video'&&pgm.scene.media);$('#vidBox').hidden=!on;if(!on)return;
+    $('#vidName').textContent=pgm.scene.name;const vol=pgm.scene.volume==null?1:pgm.scene.volume;$('#vidVol').value=vol;$('#vidVolOut').textContent=Math.round(vol*100)+'%'}
+  const toggleVid=()=>{const i=vidInfo();if(!i)return;vidOp(i.paused?'play':'pause')};
+  $('#vidPlay').addEventListener('click',toggleVid);
+  $('#vidRestart').addEventListener('click',()=>vidOp('restart'));
+  $('#vidSeek').addEventListener('click',e=>{const i=vidInfo();if(!i||!i.d)return;const r=e.currentTarget.getBoundingClientRect();vidOp('seek',clamp((e.clientX-r.left)/r.width,0,1)*i.d)});
+  $('#vidVol').addEventListener('input',e=>{const v=+e.target.value;if(pgm.scene)pgm.scene.volume=v;$('#vidVolOut').textContent=Math.round(v*100)+'%';send({t:'video',op:'vol',v})});
+
+  /* ---------- 背景音樂 ---------- */
+  function renderPlaylist(){const ol=$('#plist');
+    ol.innerHTML=show.playlist.length?show.playlist.map((id,i)=>`<li class="${missing.has(id)?'bad':''}" data-i="${i}"><button type="button" class="pl-name" data-pl-play="${i}" title="播放這首">${i+1}. ${esc(show.media[id]?show.media[id].name:'(未知檔案)')}${missing.has(id)?'（缺檔）':''}</button><span class="pl-acts"><button type="button" data-pl-up="${i}" title="往上移" aria-label="往上移">↑</button><button type="button" data-pl-del="${i}" title="從清單移除" aria-label="移除">×</button></span></li>`).join('')
+      :'<li class="empty">還沒有音樂。可以加入 MP3、M4A 檔，例如進場、用餐、抽獎各放一首。</li>'}
+  const pushList=()=>{send({t:'bgm',op:'list',list:plMsg()});renderPlaylist();touched();save()};
+  $('#plist').addEventListener('click',e=>{const p=e.target.closest('[data-pl-play]'),u=e.target.closest('[data-pl-up]'),d=e.target.closest('[data-pl-del]');
+    if(p)send({t:'bgm',op:'play',index:+p.dataset.plPlay});
+    else if(u){const i=+u.dataset.plUp;if(i>0){const a=show.playlist;[a[i-1],a[i]]=[a[i],a[i-1]];pushList()}}
+    else if(d){show.playlist.splice(+d.dataset.plDel,1);pushList()}});
+  $('#bgmAdd').addEventListener('click',()=>pickFiles('audio/*',true,async f=>{const ids=await storeFiles(f);show.playlist.push(...ids);pushList();if(ids.length)toast('已加入 '+ids.length+' 首音樂')}));
+  const toggleBgm=()=>{if(!show.playlist.length){toast('請先加入音樂');return}const b=outS.bgm;send(b&&b.playing&&!b.fading?{t:'bgm',op:'pause'}:{t:'bgm',op:'play'})};
+  $('#bgmPlay').addEventListener('click',toggleBgm);
+  $('#bgmPrev').addEventListener('click',()=>send({t:'bgm',op:'prev'}));
+  $('#bgmNext').addEventListener('click',()=>send({t:'bgm',op:'next'}));
+  $('#bgmFade').addEventListener('click',()=>send({t:'bgm',op:'fadeout'}));
+  $('#bgmVol').addEventListener('input',e=>{S().bgmVol=+e.target.value;$('#bgmVolOut').textContent=Math.round(S().bgmVol*100)+'%';send({t:'cfg',cfg:audioCfg()});save()});
+  $('#bgmMode').addEventListener('change',e=>{S().bgmMode=e.target.value;send({t:'cfg',cfg:audioCfg()});save()});
+  $('#duck').addEventListener('change',e=>{S().duck=e.target.checked;send({t:'cfg',cfg:audioCfg()});save()});
+
+  /* ---------- 音效 ---------- */
+  function renderSfx(){const g=$('#sfxGrid');
+    g.innerHTML=show.sfx.length?show.sfx.map((x,i)=>`<div class="sfx-item"><button type="button" class="btn" data-sfx="${i}" title="${esc(x.name)}">${esc(x.name)}</button><button type="button" class="sfx-x" data-sfx-del="${i}" title="移除" aria-label="移除 ${esc(x.name)}">×</button></div>`).join('')
+      :'<p class="empty">還沒有音效。加入鼓聲、掌聲等短音檔，抽獎或公布答案時一鍵播放。</p>'}
+  $('#sfxGrid').addEventListener('click',e=>{const p=e.target.closest('[data-sfx]'),d=e.target.closest('[data-sfx-del]');
+    if(p){const x=show.sfx[+p.dataset.sfx];if(x)send({t:'sfx',id:x.media})}else if(d){show.sfx.splice(+d.dataset.sfxDel,1);touched();save();renderSfx()}});
+  $('#sfxAdd').addEventListener('click',()=>pickFiles('audio/*',true,async f=>{const ids=await storeFiles(f);ids.forEach((id,i)=>show.sfx.push({id:uid(),name:f[i]?f[i].name.replace(/\.[^.]+$/,''):'音效',media:id}));save();renderSfx()}));
+  $('#sfxStop').addEventListener('click',()=>send({t:'sfx-stop'}));
+
+  /* ---------- 其他控制 ---------- */
+  $('#btnTake').addEventListener('click',()=>{if(pvwId)take(findScene(pvwId))});
+  $('#btnBlack').addEventListener('click',()=>take(BUILTIN.black));
+  $('#btnLogo').addEventListener('click',()=>take(BUILTIN.logo));
+  $('#trSeg').addEventListener('click',e=>{const b=e.target.closest('[data-tr]');if(b)setTransition(b.dataset.tr)});
+  $('#fadeMs').addEventListener('input',e=>{S().fadeMs=+e.target.value;$('#fadeOut').textContent=(S().fadeMs/1000).toFixed(1)+' 秒';save()});
+  $('#autoNext').addEventListener('change',e=>{S().autoNext=e.target.checked;save()});
+  $('#btnSettings').addEventListener('click',openSettings);
+  $('#showName').addEventListener('click',openSettings);
+  $('#btnKeys').addEventListener('click',()=>$('#dlgKeys').showModal());
+
+  document.addEventListener('keydown',e=>{
+    if(document.querySelector('dialog[open]'))return;
+    const t=e.target;if(t.matches&&t.matches('input,textarea,select,[contenteditable]'))return;
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    const k=e.key,kk=k.length===1?k.toLowerCase():k;
+    // Enter 一律是「切換」，避免剛點過的按鈕被 Enter 再按一次；鍵盤操作按鈕請用空白鍵
+    if(k==='Enter'){e.preventDefault();if(tab==='game'&&gSel)take(findScene(gSel));else if(pvwId)take(findScene(pvwId));return}
+    if(/^[0-9]$/.test(k)){const sc=show.scenes[k==='0'?9:+k-1];if(sc){if(tab==='game'&&sc.type==='game')selectGame(sc.id);else setPreview(sc.id)}return}
+    if(k==='ArrowRight'||k==='ArrowLeft'){e.preventDefault();if(!show.scenes.length)return;const i=show.scenes.findIndex(s=>s.id===pvwId);const n=i<0?0:clamp(i+(k==='ArrowRight'?1:-1),0,show.scenes.length-1);setPreview(show.scenes[n].id);return}
+    if(kk==='b')take(BUILTIN.black);else if(kk==='l')take(BUILTIN.logo);else if(kk==='m')toggleBgm();else if(kk==='v')toggleVid();else if(kk==='c')setTransition('cut');else if(kk==='f')setTransition('fade');else if(kk==='g')setTab('game');
+  });
+
+  /* ---------- 狀態更新 ---------- */
+  function uiTick(){
+    const on=outOn(),p=$('#outPill');let cls='',txt='投影視窗未開啟';
+    if(on){if(!outS.ready){cls='warn';txt='投影視窗待啟用：在投影畫面點一下'}else if(!outS.fs){cls='warn';txt='投影視窗未全螢幕：在投影畫面按 F'}else{cls='ok';txt='投影輸出中・'+outS.w+'×'+outS.h}}
+    p.className='pill '+cls;p.lastElementChild.textContent=txt;
+    $('#airName').textContent=pgm.scene?pgm.scene.name:'—';$('#airChip').hidden=!pgm.scene;
+    $('#pgmClock').textContent=pgm.scene?fmtT((Date.now()-pgm.startedAt)/1000):'';
+    const audioOk=on&&outS.ready;$('#audioNotice').hidden=audioOk;$('#musicBox').classList.toggle('off',!on);$('#sfxBox').classList.toggle('off',!on);
+    $('#audioNotice').textContent=on?'在投影畫面點一下啟用聲音，音樂與音效才會出聲。':'聲音由投影視窗播放：開啟投影視窗並點一下啟用後，音樂才會出聲。';
+    const b=on?outS.bgm:null;const playing=!!(b&&b.playing&&!b.fading);
+    $('#bgmState').textContent=!b||b.index<0?'未播放':b.fading?'淡出中':playing?'播放中':'已暫停';
+    $('#bgmName').textContent=b&&b.id&&show.media[b.id]?show.media[b.id].name:'—';
+    $('#bgmTime').textContent=b?fmtT(b.t)+' / '+fmtT(b.d):'00:00 / 00:00';$('#bgmBar').style.width=b&&b.d?(b.t/b.d*100)+'%':'0';
+    const pb=$('#bgmPlay');const want=playing?'暫停':'播放';if(pb.lastElementChild.textContent!==want){pb.lastElementChild.textContent=want;pb.firstElementChild.innerHTML=playing?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M7 5v14l12-7z"/>'}
+    $$('#plist li[data-i]').forEach(li=>li.classList.toggle('on',!!b&&+li.dataset.i===b.index&&show.playlist[b.index]===b.id));
+    if(!$('#vidBox').hidden){const i=vidInfo();if(i){$('#vidTime').textContent=fmtT(i.t)+' / '+fmtT(i.d);$('#vidRemain').textContent='-'+fmtT(i.d-i.t);$('#vidBar').style.width=i.d?(i.t/i.d*100)+'%':'0';$('#vidPlay').textContent=i.paused?'播放':'暫停'}}
+    if(on&&outS.video){const v=pgmVideo();if(v&&isFinite(outS.video.t)){if(Math.abs(v.currentTime-outS.video.t)>.7)try{v.currentTime=outS.video.t}catch(e){}if(outS.video.paused&&!v.paused)v.pause();else if(!outS.video.paused&&v.paused)v.play().catch(()=>{})}}
+  }
+
+  /* ---------- 啟動 ---------- */
+  async function afterLoad(){
+    applyAspect();await ensure(usedIds());await computeMissing();
+    $('#showNameTxt').textContent=show.name;
+    setTransition(S().transition);$('#fadeMs').value=S().fadeMs;$('#fadeOut').textContent=(S().fadeMs/1000).toFixed(1)+' 秒';$('#autoNext').checked=!!S().autoNext;
+    $('#bgmVol').value=S().bgmVol;$('#bgmVolOut').textContent=Math.round(S().bgmVol*100)+'%';$('#bgmMode').value=S().bgmMode;$('#duck').checked=!!S().duck;
+    renderBin();renderPlaylist();renderSfx();setPreview(show.scenes[0]?show.scenes[0].id:null);setTab(tab);
+    send({t:'env',env:env()});send({t:'cfg',cfg:audioCfg()});send({t:'bgm',op:'list',list:plMsg()});
+  }
+  (async()=>{
+    try{await openDB()}catch(e){toast('這個瀏覽器無法使用本機儲存，請改用 Chrome 或 Edge 一般視窗','err');return}
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+    let want=new URLSearchParams(location.search).get('tpl');if(want==='weiya')want='classic';if(want&&!(want in KITS))want=null;
+    let s=null,r=null;try{s=await idb.get('kv','show');r=await idb.get('kv','runtime')}catch(e){}
+    if(!s||(s.sample&&want&&s.tpl!==want)){if(s){await idb.clear('media');urlCache.clear()}show=await sampleShow(want||'wedding');show.sample=true;await idb.put('kv','show',show);r=null}
+    else{show=normalize(s);if(want&&want!==show.tpl&&!s.sample)setTimeout(()=>toast('這台電腦已有你自己的場次。要看其他範例，請按「新場次」。'),800)}
+    R=r&&r.kit===show.kit&&Array.isArray(r.people)?r:genRoster(show.kit,Math.floor(Math.random()*1e9));R.games=R.games||{};R.scores=R.scores||{};R.last=R.last||[];indexRoster();
+    for(const sc of show.scenes){if(sc.type==='game'&&R.games[sc.id]){const c=GC[sc.game];if(c&&c.load)c.load(R.games[sc.id])}}
+    saveR();
+    await afterLoad();
+    if(s&&!s.sample){try{await gc()}catch(e){}}
+    send({t:'who'});
+    setInterval(uiTick,250);uiTick();
+    if(missing.size)toast(`有 ${missing.size} 個素材找不到檔案`,'',['重新連結',relink]);
+  })();
+  if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+})();
+
+</script>
+</body>
+</html>

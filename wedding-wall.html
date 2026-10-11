@@ -65,6 +65,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
 /* 頂部 */
+.embed-wall .topbar{display:none!important}
+.embed-wall body{margin:0}
+.embed-wall main{padding:0!important;margin:0!important;max-width:none!important}
+.embed-wall .wall{min-height:100vh!important;border-radius:0!important;border:0!important}
+.embed-wall .view-note,.embed-wall #w-full{display:none!important}
 .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:baseline;gap:8px;margin-right:auto}
 .brand-name{font-family:var(--display);font-weight:var(--dw);letter-spacing:var(--dls);font-size:19px}
@@ -2561,6 +2566,8 @@ SAMPLES.forEach((s,i)=>{
 });
 S.energy.ms.forEach(m=>{ m.unlocked = visible().length>=m.n; });
 buildCtrl(); drawQR(); renderGuest(); advance(); refresh();
+/* 網址加上 #wall：只顯示投影牆（給導播台嵌入用） */
+if(location.hash==='#wall'){ document.documentElement.classList.add('embed-wall'); setView('wall'); }
 </script>
 
 </body>
